@@ -20,3 +20,12 @@ may not really have the expected effect.
 Only OpenSSL client is complete enough. GNU TLS does not allow easy
 display of session contents and NSS does not allow to check if a
 session was resumed.
+
+Additionally, `rfc5077-client` proposes some more advanced tests
+against a server or a pool of servers. It will try to reuse sessions
+with and without tickets and will query several time each IP of a pool
+of servers. Use this if you want to check support of SSL session
+resume of a server or a pool of servers.
+
+It is possible that those clients may fail if you don't have a working
+IPv6 connectivity. Get an IPv6 connectivity. ;-)
