@@ -22,13 +22,15 @@ display(const char *sign, const char *format, va_list ap) {
 
   if (format) {
     /* We indent the message */
-    int   n;
-    int   size    = 4096;
-    char *message = malloc(size);
+    int   n = 0;
+    int   size    = 0;
+    char *message = NULL;
     char *cur;
-    if (message == NULL) return;
-    n = vsnprintf(message, size, format, ap);
-    if (n == -1 || n >= size) return;
+    while (n >= size) {
+      if ((message = realloc(message, size + 2048)) == NULL) return;
+      size = size + 2048;
+      if ((n = vsnprintf(message, size, format, ap)) == -1) return;
+    }
     cur = message;
     fprintf(stdout, "    │ ");
     while (*cur) {
