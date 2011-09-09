@@ -22,7 +22,7 @@ usage(char * const name) {
 }
 
 /* Solve hostname to IPs */
-void
+static void
 resolve(const char *host, struct addrinfo **result) {
   int              err, count;
   char             name[INET6_ADDRSTRLEN*4];
@@ -75,7 +75,7 @@ struct resultinfo {
   struct resultinfo *next;	     /* Next result */
 };
 
-void
+static void
 resultinfo_free(struct resultinfo *result) {
   struct resultinfo *r, *n;
   for (r = n = result; r; r = n = n->next) {
@@ -87,7 +87,8 @@ resultinfo_free(struct resultinfo *result) {
 }
 
 /* Display results as a table (best-effort) */
-void resultinfo_display(struct resultinfo *result) {
+static void
+resultinfo_display(struct resultinfo *result) {
   int          i, n;
   char        *buf;
   BIO         *mem = BIO_new(BIO_s_mem());
@@ -146,7 +147,56 @@ void resultinfo_display(struct resultinfo *result) {
   fail("BIO failure");
 }
 
-struct resultinfo*
+/* Dump results in a CSV file */
+static void
+resultinfo_write(const char *comment, struct resultinfo *result,
+		 FILE *output, int write_header) {
+  SSL_SESSION  *x;
+  int           i;
+
+  start("Dump results to file");
+  if (write_header)
+    fprintf(output,
+	    "test;IP;try;version;cipher;compression;"
+	    "reuse;session id;master key;ticket;answer\n");
+  for(; result; result = result->next) {
+    x = result->session;
+
+    /* Comment, host and try number */
+    fprintf(output, "%s;%s;%d;",
+	    comment,
+	    result->host,
+	    result->try);
+
+    /* Display version */
+    if (x->ssl_version == SSL2_VERSION)
+      fprintf(output, "SSLv2");
+    else if (x->ssl_version == SSL3_VERSION)
+      fprintf(output, "SSLv3");
+    else if (x->ssl_version == TLS1_VERSION)
+      fprintf(output, "TLSv1");
+    else
+      fprintf(output, "%d", x->ssl_version);
+
+    /* Cipher, compression method */
+    fprintf(output, ";%s;%d",
+	    x->cipher?x->cipher->name:"",
+	    x->compress_meth);
+
+    /* Session stuff */
+    fprintf(output, ";%d;", result->session_reused?1:0);
+    for (i = 0; i < x->session_id_length; i++)
+      fprintf(output, "%02X", x->session_id[i]);
+    fprintf(output, ";");
+    for (i = 0; i < x->master_key_length; i++)
+      fprintf(output, "%02X", x->master_key[i]);
+    fprintf(output, ";%d;%s\n", x->tlsext_ticklen?1:0,
+	    result->answer?result->answer:"");
+  }
+  return;
+}
+
+static struct resultinfo*
 tests(SSL_CTX *ctx, struct addrinfo *hosts, int tickets) {
   SSL*                ssl;
   SSL_SESSION*        ssl_session = NULL;
@@ -260,26 +310,48 @@ main(int argc, char * const argv[]) {
     next = &((*next)->ai_next);
   }
 
+  start("Prepare tests");
+
   /* Initialize OpenSSL library */
   SSL_CTX *ctx;
-  start("Initialize OpenSSL");
   SSL_load_error_strings();
   SSL_library_init();
   if ((ctx = SSL_CTX_new(TLSv1_client_method())) == NULL)
     fail("Unable to initialize SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
 
-  /* Run tests without and with tickets */
+  /* Run tests without and with tickets and store them to a file */
   struct resultinfo *results;
+  FILE              *output;
+  char               name[1024];
+  time_t             now = time(NULL);
+  int                n;
 
+  /* Build file name */
+  n = snprintf(name, sizeof(name),
+	       "rfc5077-output-%lu", (unsigned long)now);
+  if (n == -1 || n >= sizeof(name))
+    fail("Not possible...");
+  for (i = 1; i < argc; i++) {
+    strncat(name, "-", sizeof(name) - 1);
+    strncat(name, argv[i], sizeof(name) - 1);
+  }
+  strncat(name, ".csv", sizeof(name) - 1);
+  if ((output = fopen(name, "w+")) == NULL)
+    fail("Unable to create output file ‘%s’:\n%m", name);
+
+  /* Run tests */
   results = tests(ctx, hosts, 0);
   resultinfo_display(results);
+  resultinfo_write("Without tickets", results, output, 1);
   resultinfo_free(results);
 
   results = tests(ctx, hosts, 1);
   resultinfo_display(results);
+  resultinfo_write("With tickets", results, output, 0);
   resultinfo_free(results);
 
+  fclose(output);
   SSL_CTX_free(ctx);
   freeaddrinfo(hosts);
   end(NULL);
