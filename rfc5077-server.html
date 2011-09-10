@@ -1,13 +1,13 @@
 <html>
 <head>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.3/jquery.min.js"></script>
 <script src="rfc5077-server.js"></script>
 <style>
+  * { margin: 0; padding: 0; }
   body { font-family: sans-serif; }
-  body, form { margin: 0; padding: 0; }
   h1 { color: #DDD;
-       size: 95%;
-       width: 100%;
+       width: 90%;
        background-color: #222;
        background-image: -moz-linear-gradient(center top, #222, #333);
        background-image: -ms-linear-gradient(center top, #222, #333);
@@ -16,10 +16,9 @@
        background-image: -webkit-linear-gradient(center top, #222, #333);
        background-image: linear-gradient(center top, #222, #333);
        border-bottom: 3px solid #FF7F00;
-       padding: 0.5em 1em; }
-  ul { width: 50%; margin: 1em 4em; }
-  .step { margin-left: 2em;
-          padding: 0.3em 0.8em;
+       padding: 0.5em 5%; }
+  ul { max-width: 30em; padding: 1em 10%; list-style: none; }
+  .step { padding: 0.8em 1em;
           display: none; }
   .step0 { display: list-item; }
   .current { background-color: #E5FFCC;

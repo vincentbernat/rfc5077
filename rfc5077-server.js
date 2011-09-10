@@ -12,7 +12,12 @@ var rfc = function() {
 	$(".step" + step)
 	    .filter(".running")
 	    .addClass("current")
-	    .fadeIn();
+	    .fadeIn(200, function() {
+		$('html, body')
+		    .stop()
+		    .animate({scrollTop: $('body').height()},
+			     800);
+	    });
     }
 
     function checksessionid(port, cb) {
