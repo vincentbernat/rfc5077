@@ -1,6 +1,6 @@
 CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE
 LDFLAGS=
-EXEC=openssl-client gnutls-client nss-client rfc5077-client
+EXEC=$(patsubst %.c,%,$(filter-out common-%,$(filter %-client.c %-server.c,$(wildcard *.c))))
 
 all: $(EXEC)
 
@@ -17,7 +17,18 @@ nss-client.o: nss-client.c
 
 rfc5077-client: rfc5077-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
+rfc5077-server: rfc5077-server.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
+
+certificate: key.pem cert.pem dh.pem
+key.pem:
+	certtool --bits 1024 --generate-privkey --outfile $@
+cert.pem: key.pem
+	certtool --generate-self-signed --load-privkey $^ --outfile $@
+dh.pem:
+	certtool --bits 1024 --generate-dh-params --outfile $@
 
 clean:
-	rm -f *.o $(EXEC)
+	rm -f *.pem *.o $(EXEC)
 
+.PHONY: clean certificates all

@@ -1,0 +1,93 @@
+<html>
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.6.3/jquery.min.js"></script>
+<script src="rfc5077-server.js"></script>
+<style>
+  body { font-family: sans-serif; }
+  body, form { margin: 0; padding: 0; }
+  h1 { color: #DDD;
+       size: 95%;
+       width: 100%;
+       background-color: #222;
+       background-image: -moz-linear-gradient(center top, #222, #333);
+       background-image: -ms-linear-gradient(center top, #222, #333);
+       background-image: -o-linear-gradient(center top, #222, #333);
+       background-image: -webkit-gradient(linear, center top, left bottom, from(#222), to(#333)); 
+       background-image: -webkit-linear-gradient(center top, #222, #333);
+       background-image: linear-gradient(center top, #222, #333);
+       border-bottom: 3px solid #FF7F00;
+       padding: 0.5em 1em; }
+  ul { width: 50%; margin: 1em 4em; }
+  .step { margin-left: 2em;
+          padding: 0.3em 0.8em;
+          display: none; }
+  .step0 { display: list-item; }
+  .current { background-color: #E5FFCC;
+             font-weight: bold; }
+   code { font-family: Inconsolatas, monospace; 
+          background-color: #FFEFD0; }
+</style>
+</head>
+<body>
+  <h1>Test for RFC 5077 support</h1>
+
+      <ul>
+	<li class="step step0 running current">
+	  You need to enable Javascript to make this page work.
+	</li>
+
+	<li class="step step0 done">
+	  Your user agent is <code id="ua"></code>.
+	</li>
+
+	<li class="step step1 running">
+	  We are fetching server ports.
+	</li>
+
+	<li class="step step1 done">
+	    Before starting, you need to ensure that you accepted the
+	    certificate available for
+	    ports <span id="ports"></span>.
+	</li>
+
+	<li class="step step2 running">
+	  <form>
+	    Once you are ready, click the
+	    <input id="start" type="button" value="start"> button.
+	  </form>
+	</li>
+	<li class="step step2 done">
+	  OK, starting tests.
+	</li>
+
+	<li class="step step3 running">
+	  Checking used cipher suite.
+	</li>
+	<li class="step step3 done">
+	  Your browser is actually using <code id="cipher"></code> cipher suite.
+	</li>
+
+	<li class="step step4 running">
+	  Checking support for session resume <strong>without</strong> tickets.
+	</li>
+	<li class="step step4 done">
+	  Your browser <strong id="resume1"></strong> support session resume
+	  without tickets.
+	</li>
+
+	<li class="step step5 running">
+	  Checking support for session resume <strong>with</strong> tickets.
+	</li>
+	<li class="step step5 done">
+	  Your browser <strong id="resume2"></strong> support session resume
+	  with tickets.
+	</li>
+
+	<li class="step step6 running">
+	  That's all!
+	</li>
+
+      </ul>
+
+</body>
+</html>
