@@ -81,13 +81,31 @@ var rfc = function() {
 			url: "session?callback=?",
 			dataType: "jsonp",
 			success: function(data) {
-			    $("#cipher").text(data.cipher);
+			    var cipher = data.cipher;
+			    $("#cipher").text(cipher);
 			    nextstep();
 			    checksessionid(ports[1], function(same) {
-				$("#resume1").text(same?"does":"does not");
+				var wotickets = same;
+				$("#resume1").text(wotickets?"does":"does not");
 				nextstep();
 				checksessionid(ports[3], function(same) {
-				    $("#resume2").text(same?"does":"does not");
+				    var wtickets = same;
+				    $("#resume2").text(wtickets?"does":"does not");
+				    /* Setup the submit button */
+				    $("#submit").click(function() {
+					nextstep();
+					$.ajax({
+					    url: "save-"
+						+ (wotickets?1:0) + "-"
+						+ (wtickets?1:0)
+						+ "?callback=?",
+					    dataType: "jsonp",
+					    success: function(data) {
+						/* We don't care of the result */
+						nextstep();
+					    }
+					});
+				    });
 				    nextstep();
 				});
 			    });

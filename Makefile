@@ -18,7 +18,7 @@ nss-client.o: nss-client.c
 rfc5077-client: rfc5077-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
 rfc5077-server: rfc5077-server.o common.o
-	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
+	$(CC) -o $@ $^ $(LDFLAGS) $(shell curl-config --libs) -lssl -lcrypto
 
 certificate: key.pem cert.pem dh.pem
 key.pem:

@@ -15,10 +15,11 @@ static int running = 0;
 
 static void
 display(const char *sign, const char *format, va_list ap) {
-  if (!running) return;
-  running = 0;
-  fprintf(stdout, BEGIN "[%s] %s%c\n", sign, current, format?':':'.');
-  fflush(stdout);
+  if (running) {
+    running = 0;
+    fprintf(stdout, BEGIN "[%s] %s%c\n", sign, current, format?':':'.');
+    fflush(stdout);
+  }
 
   if (format) {
     /* We indent the message */

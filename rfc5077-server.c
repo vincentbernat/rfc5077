@@ -7,12 +7,18 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <curl/curl.h>
 
 #include "common.h"
 
 #define PEM_CERTIFICATE "cert.pem"
 #define PEM_KEY         "key.pem"
 #define PEM_DH          "dh.pem"
+
+/* Params for AWS. User with append-only rights. */
+#define AWS_KEY "AKIAIDFV7UUQKJBXU6CQ"
+#define AWS_SAK "dJpFoH4QzU9Slhw9nZHiYBYTcgkVs7RicIdI+WZB"
+#define AWS_SDB "rfc5077"
 
 /* Server state */
 struct server {
@@ -376,6 +382,158 @@ hsession(struct server servers[], struct server *server,
   return 200;
 }
 
+/* Save to AWS */
+static size_t
+trash(void *contents, size_t size, size_t nmemb, void *userp) {
+  return size * nmemb;
+}
+
+int
+hsave(struct request *request, BIO *bio, SSL *ssl,
+      int wotickets, int wtickets) {
+  char         req[2048];
+  char         url[2048];
+  int          n;
+  SSL_SESSION *x = SSL_get_session(ssl);
+
+  CURL        *curl = NULL;
+  char        *ua = NULL;
+  char        *cipher = NULL;
+  char        *sig = NULL;
+  char        *ts = NULL;
+
+  start("Try to send data to Amazon SimpleDB");
+
+  /* Initialize cURL */
+  curl_version_info_data *cversion = curl_version_info(CURLVERSION_NOW);
+  if (!(cversion->features & CURL_VERSION_SSL)) {
+    warn("cURL is not compiled with SSL support. Can't do more.");
+    goto cleanup;
+  }
+  if (!(curl = curl_easy_init())) {
+    warn("Not able to initialize cURL.");
+    goto cleanup;
+  }
+
+  /* Encode some params (assume that this can't fail) */
+  ua     = curl_easy_escape(curl, request->ua, 0);
+  cipher = curl_easy_escape(curl,
+			    x->cipher?x->cipher->name:"unknown",
+			    0);
+
+  /* Build request that should be signed */
+  char       timestamp[100];
+  time_t     now = time(NULL);
+  struct tm *tmp = gmtime(&now);
+  strftime(timestamp, sizeof(timestamp),
+	   "%FT%TZ", tmp);
+  ts = curl_easy_escape(curl, timestamp, 0);
+  n = snprintf(req, sizeof(req),
+	       "AWSAccessKeyId=" AWS_KEY
+	       "&Action=PutAttributes"
+	       "&Attribute.1.Name=UserAgent"
+	       "&Attribute.1.Value=%s"
+	       "&Attribute.2.Name=Cipher"
+	       "&Attribute.2.Value=%s"
+	       "&Attribute.3.Name=WithoutTickets"
+	       "&Attribute.3.Value=%d"
+	       "&Attribute.4.Name=WithTickets"
+	       "&Attribute.4.Value=%d"
+	       "&DomainName=" AWS_SDB
+	       "&ItemName=%lu"
+	       "&SignatureMethod=HmacSHA256"
+	       "&SignatureVersion=2"
+	       "&Timestamp=%s"
+	       "&Version=2009-04-15",
+	       ua,
+	       cipher,
+	       wotickets, wtickets,
+	       now,  /* We may get a collision, but we don't bother */
+	       ts);
+  if (n == -1 || n >= sizeof(req)) {
+    warn("Not able to build AWS request (too long).");
+    goto cleanup;
+  }
+
+  /* I would have loved to use BIO_f_md() and BIO_f_base64() but I did
+   * not find how to plug everything together to do HMAC with
+   * BIO_f_md(). Mail me if you know something about this. */
+
+  /* TODO: do we need error checking here? */
+
+  /* Let's sign the request */
+  HMAC_CTX  hmac_ctx;
+  HMAC_CTX_init(&hmac_ctx);
+  HMAC_Init(&hmac_ctx, AWS_SAK, strlen(AWS_SAK), EVP_sha256());
+  HMAC_Update(&hmac_ctx,
+	      (const unsigned char *)"GET\nsdb.amazonaws.com\n/\n",
+	      strlen("GET\nsdb.amazonaws.com\n/\n"));
+  HMAC_Update(&hmac_ctx, (const unsigned char *)req,
+	      strlen(req));
+  unsigned char hresult[HMAC_MAX_MD_CBLOCK];
+  unsigned int len = sizeof(hresult);
+  HMAC_Final(&hmac_ctx, hresult, &len);
+  HMAC_CTX_cleanup(&hmac_ctx);
+
+  /* Encode it using base64 */
+  unsigned char signature[HMAC_MAX_MD_CBLOCK*2];
+  int  olen, tlen = 0;
+  EVP_ENCODE_CTX ectx;
+  EVP_EncodeInit(&ectx);
+  EVP_EncodeUpdate(&ectx, signature, &olen, hresult, len);
+  tlen = olen;
+  EVP_EncodeFinal(&ectx, signature + tlen, &olen);
+  tlen += olen;
+  signature[tlen-1] = '\0';	/* It is ended by a new line. Why? */
+
+  /* OK, let's build the HTTP request */
+  sig = curl_easy_escape(curl, (char *)signature, 0);
+  n = snprintf(url, sizeof(url),
+	       "https://sdb.amazonaws.com/?%s"
+	       "&Signature=%s", req, sig);
+  if (n == -1 || n >= sizeof(url)) {
+    warn("Not able to build AWS request (too long).");
+    goto cleanup;
+  }
+  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, trash);
+  if (curl_easy_perform(curl) != 0)
+    warn("There was a problem with AWS request to SimpleDB.\n"
+	 "Good luck to find why. ;-)");
+
+ cleanup:
+  if (ts) curl_free(ts);
+  if (sig) curl_free(sig);
+  if (ua) curl_free(ua);
+  if (cipher) curl_free(cipher);
+  if (curl) curl_easy_cleanup(curl);
+
+  /* Even if it fails, build a success answer. */
+  BIO_puts(bio, "HTTP/1.0 200 OK\r\n");
+  if (request->callback)
+    BIO_puts(bio, "Content-Type: application/javascript\r\n");
+  else
+    BIO_puts(bio, "Content-Type: application/json\r\n");
+  BIO_puts(bio, "\r\n");
+  BIO_printf(bio, "%s%s{ status: 1, message: 'Thanks for your support' }%s\r\n",
+	     request->callback?request->callback:"",
+	     request->callback?"(":"",
+	     request->callback?");":"");
+  return 200;
+}
+
+#define HSAVE(x,y)							\
+  int									\
+  hsave ## x ## y (struct server servers[], struct server *server,	\
+		   struct request *request, BIO *bio, SSL *ssl) {	\
+    return hsave(request, bio, ssl, x, y);				\
+  }
+HSAVE(0, 0)
+HSAVE(0, 1)
+HSAVE(1, 1)
+HSAVE(1, 0)
+
 struct handler {
   char *path;			/* Path handled */
   int (*h)(struct server [], struct server *,
@@ -457,6 +615,11 @@ handle(struct server *server, struct server servers[]) {
     { "/session", hsession },
     { "/params", hparams },
     { "/servers", hservers },
+    /* Save to AWS SimpleDB */
+    { "/save-0-0", hsave00 },
+    { "/save-1-0", hsave10 },
+    { "/save-1-1", hsave11 },
+    { "/save-0-1", hsave01 },
     { NULL }
   };
 
@@ -523,6 +686,9 @@ main(int argc, char * const argv[]) {
   /* Initialize OpenSSL library */
   SSL_load_error_strings();
   SSL_library_init();
+  /* And cURL */
+  if (curl_global_init(CURL_GLOBAL_NOTHING) != 0)
+    fail("Unable to initialize cURL");
 
   /* Setup each configuration */
   for (int i = 0; i < nb; i++) {
@@ -563,5 +729,6 @@ main(int argc, char * const argv[]) {
     SSL_CTX_free(servers[i].ctx);
 
   end(NULL);
+  curl_global_cleanup();
   return 0;
 }
