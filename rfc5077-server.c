@@ -173,6 +173,10 @@ parse_http(BIO *bio) {
 
   /* Grab a line */
   n = BIO_gets(bio, line, sizeof(line));
+  /* TODO: sometimes, we just always get 0. Unfortunately, with the
+     BIO layer, this is difficult to find what's happening. While
+     Chrome will happily retry if we abort here, older Internet
+     Explorer will not like it. */
   if (n <= 0 || n >= sizeof(line)) return NULL;
   while ((line[n-1] == '\n') || (line[n-1] == '\r')) {
     line[--n] = '\0';
