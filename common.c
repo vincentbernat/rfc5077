@@ -17,8 +17,8 @@ static void
 display(const char *sign, const char *format, va_list ap) {
   if (running) {
     running = 0;
-    fprintf(stdout, BEGIN "[%s] %s%c\n", sign, current, format?':':'.');
-    fflush(stdout);
+    fprintf(stderr, BEGIN "[%s] %s%c\n", sign, current, format?':':'.');
+    fflush(stderr);
   }
 
   if (format) {
@@ -33,16 +33,16 @@ display(const char *sign, const char *format, va_list ap) {
       if ((n = vsnprintf(message, size, format, ap)) == -1) return;
     }
     cur = message;
-    fprintf(stdout, "    │ ");
+    fprintf(stderr, "    │ ");
     while (*cur) {
       if (*cur == '\n')
-	fprintf(stdout, "\n    │ ");
+	fprintf(stderr, "\n    │ ");
       else
-	fprintf(stdout, "%c", *cur);
+	fprintf(stderr, "%c", *cur);
       cur++;
     }
-    fprintf(stdout, "\n");
-    fflush(stdout);
+    fprintf(stderr, "\n");
+    fflush(stderr);
     free(message);
   }
 }
@@ -61,8 +61,8 @@ start(const char *format, ...) {
     exit(EXIT_FAILURE);
 
   /* Display */
-  fprintf(stdout, "[ ] %s ...", current);
-  fflush(stdout);
+  fprintf(stderr, "[ ] %s ...", current);
+  fflush(stderr);
   running = 1;
 }
 
