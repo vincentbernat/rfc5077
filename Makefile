@@ -1,4 +1,4 @@
-CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE
+CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
 LDFLAGS=
 EXEC=openssl-client gnutls-client nss-client rfc5077-client rfc5077-server rfc5077-pcap
 

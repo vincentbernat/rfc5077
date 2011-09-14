@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <string.h>
 #include <pcap.h>
 #include <time.h>
@@ -361,11 +362,10 @@ append(char **to, const char *what) {
   if (!*to)
     *to = strdup(what);
   else {
-    int l = strlen(*to);
-    *to = realloc(*to,
-		  l + strlen(what) + 2);
-    strcat(*to, ":"); strcat(*to, what);
-    (*to)[l] = ':';
+    char *new;
+    asprintf(&new, "%s:%s", *to, what);
+    free(*to);
+    *to = new;
   }
 }
 
