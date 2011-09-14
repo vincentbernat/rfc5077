@@ -359,11 +359,13 @@ struct hello {
 
 static void
 append(char **to, const char *what) {
-  if (!*to)
-    *to = strdup(what);
-  else {
+  if (!*to) {
+    if ((*to = strdup(what)) == NULL)
+      fail("Not enough memory");
+  } else {
     char *new;
-    asprintf(&new, "%s:%s", *to, what);
+    if (asprintf(&new, "%s:%s", *to, what) == -1)
+      fail("Not enough memory");
     free(*to);
     *to = new;
   }
@@ -566,7 +568,8 @@ parse(const u_char *data, int len) {
 	    snilen = ntohs(snilen);
 	    if (clen < snilen + 3) break;
 	    if (*p == 0) {
-	      sni = malloc(snilen + 1);
+	      if ((sni = malloc(snilen + 1)) == NULL)
+		fail("Not enough memory");
 	      memcpy(sni, p + 3, snilen);
 	      sni[snilen] = '\0';
 	      append(&hello.servername, sni);
