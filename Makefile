@@ -1,6 +1,6 @@
 CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE
 LDFLAGS=
-EXEC=$(patsubst %.c,%,$(filter-out common-%,$(filter %-client.c %-server.c,$(wildcard *.c))))
+EXEC=openssl-client gnutls-client nss-client rfc5077-client rfc5077-server rfc5077-pcap
 
 all: $(EXEC)
 
@@ -19,6 +19,9 @@ rfc5077-client: rfc5077-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
 rfc5077-server: rfc5077-server.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(shell curl-config --libs) -lssl -lcrypto
+
+rfc5077-pcap: rfc5077-pcap.o common.o
+	$(CC) -o $@ $^ $(LDFLAGS) $(shell pcap-config --libs)
 
 certificate: key.pem cert.pem dh.pem
 key.pem:

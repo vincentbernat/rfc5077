@@ -54,3 +54,13 @@ to be standard compliant. Don't put it on the Internet. Moreover,
 since it does not handle simultaneous connections, some browsers (IE,
 Chrome) will choke. Therefore, it is not able to fullfil its usage for
 all browsers...
+
+Misc
+----
+
+`rfc5077-pcap` will analyze SSL handshakes contained in PCAP files. It
+will try to detect "Client Hello". It will extract IP addesses,
+protocol version, Session ID, cipher suites, compression methods and
+detect the use of SNI extension and ticket extension. It should be
+used to determine how many clients support one cipher suite or how
+many clients support ticket extension.
