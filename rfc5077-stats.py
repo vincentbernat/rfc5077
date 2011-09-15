@@ -23,8 +23,8 @@ import sys
 import os
 import gzip
 import time
+import cgi
 import sqlite3
-import markdown
 
 # httpagentparser
 try:
@@ -265,31 +265,8 @@ def build_pdf(cur):
     savefig(pdf)
 
 def build_html(cur):
-    txt = []
     # Support of SNI and RFC 5077
     print "[+] Table of SNI and RFC 5077 support"
-    txt.append(u"Table of SNI and RFC 5077 support")
-    txt.append(u"=================================")
-    txt.append(u"")
-    cur.execute("SELECT name,os,GROUP_CONCAT(ua,':::'),ticket,sni, c FROM "
-                " (SELECT DISTINCT b.name,b.os,b.ua,h.ticket,CASE WHEN length(servername)>0 THEN 1 ELSE 0 END AS sni, "
-                "      COUNT(h.client) AS c"
-                "   FROM browsers b, hello h"
-                "   WHERE b.ip = h.client AND h.ssl2 = 0"
-                "   GROUP BY b.name, b.os, b.ua, h.ticket, sni) "
-                "  GROUP BY name, os, ticket, sni"
-                "  ORDER BY name ASC, os ASC, c DESC, ticket ASC, sni ASC")
-
-    txt.append(u"  Browser name                    |  OS                           | UA |RFC 5077 | SNI | Requests ")
-    txt.append(u"----------------------------------|-------------------------------|----|---------|-----|----------")
-    for row in cur:
-        if row[0] == "Unknown Browser":
-            continue
-        txt.append(u" %s | %s | %s | %s | %s | %d" % (row[0], row[1], row[2],
-                                                      row[3] and u"✔" or u"✘",
-                                                      row[4] and u"✔" or u"✘",
-                                                      row[5]))
-    txt.append(u"")
 
     tables = open("%s.html" % base, "w")
     tables.write("""
@@ -331,7 +308,7 @@ def build_html(cur):
       -webkit-border-radius:0 4px 0 0;
       -moz-border-radius:0 4px 0 0;
     }
-    table tbody td { padding:0.2em 0.5em; }
+    table tbody td { padding:0.2em 0.5em; vertical-align: top; }
     table tbody tr {
       background-color:#ffffff;
       color:#444;
@@ -341,8 +318,34 @@ def build_html(cur):
     </style>
     </head><body>
     """)
-    tables.write(markdown.markdown(u"\n".join(txt), ['tables']).replace(u":::","<br>").encode("utf-8"))
-    tables.write("</body></html>")
+
+    tables.write(u"<h1>Table of SNI and RFC 5077 support</h1>\n")
+    cur.execute("SELECT name,os,GROUP_CONCAT(ua,'::::'),ticket,sni, SUM(c) FROM "
+                " (SELECT DISTINCT b.name,b.os,b.ua,h.ticket,CASE WHEN length(servername)>0 THEN 1 ELSE 0 END AS sni, "
+                "      COUNT(h.client) AS c"
+                "   FROM browsers b, hello h"
+                "   WHERE b.ip = h.client AND h.ssl2 = 0"
+                "   GROUP BY b.name, b.os, b.ua, h.ticket, sni) "
+                "  GROUP BY name, os, ticket, sni"
+                "  ORDER BY name ASC, os ASC, c DESC, ticket ASC, sni ASC")
+
+    tables.write("""<table><thead>
+<tr><th>Browser name</th><th>OS</th><th>UA</th><th>RFC 5077</th><th>SNI</th><th>Requests</th></tr>
+</thead><tbody>
+""")
+    for row in cur:
+        if row[0] == "Unknown Browser":
+            continue
+        browsers = row[2].split(u"::::")
+        browsers.sort()
+        tables.write((u" <tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%d</td></tr>\n" % 
+                      (cgi.escape(row[0]), cgi.escape(row[1]),
+                       u"<br>".join(browsers),
+                       row[3] and u"✔" or u"✘",
+                       row[4] and u"✔" or u"✘",
+                       row[5])).encode("utf-8"))
+
+    tables.write("</tbody></table></body></html>")
 
 
 create_database_hello(cur, data)
