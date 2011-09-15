@@ -1,0 +1,3 @@
+[submodule "httpagentparser"]
+	path = httpagentparser
+	url = git://github.com/shon/httpagentparser.git
