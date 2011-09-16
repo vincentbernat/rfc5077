@@ -141,7 +141,7 @@ def build_pdf(cur):
         labels=[x[1] for x in r],
         labeldistance=1.15,
         autopct='%1.1f%%', shadow=True)
-    title("Most common TLS versions")
+    title("Most common SSL versions")
 
     # Plot 4: Resumed sessions
     print("[+] Plot 4")
