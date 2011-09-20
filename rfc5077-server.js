@@ -97,13 +97,13 @@ var rfc = function() {
 			/* Skip the first result. This may be empty or
 			 * an old session. */
 			for (var i=2; i < sessions.length; i++) {
-			    if (sessions[i].sessionid != sessions[1].sessionid) {
+			    if (sessions[i] !== sessions[1]) {
 				cb(false);
 				return;
 			    }
 			}
 			/* Maybe there is no session at all */
-			cb(sessions[1].sessionid !== '');
+			cb(sessions[1] !== '');
 		    } else dotry();
 		}
 	    });
