@@ -213,17 +213,18 @@ shutdown_connection(struct ev_loop *loop, struct connection *conn) {
 static void
 shutdown_connection_with_err(struct ev_loop *loop, struct connection *conn,
 			     int err) {
+  int noerr = 0;
   if (err == SSL_ERROR_ZERO_RETURN)
-    warn("Connection with %s closed while receiving data (0)", conn->ip);
+    warn("Connection with %s closed while receiving data", conn->ip);
   else if (err == SSL_ERROR_SYSCALL) {
-    if (errno == 0)
-      warn("Connection with %s closed while receiving data (1)", conn->ip);
-    else
+    if (errno != 0)
       warn("Got an error with %s, closing:\n%m", conn->ip);
+    else noerr = 1;
   } else
     warn("Unexpected SSL error with %s: %d", conn->ip, err);
   shutdown_connection(loop, conn);
-  start("Ready for the next connection");
+  if (!noerr)
+    start("Ready for the next connection");
 }
 
 /* Return the requested HTTP answer */
@@ -603,7 +604,8 @@ handle_client_handshake(struct ev_loop *loop, ev_io *w, int revents) {
       shutdown_connection(loop, conn);
       break;
     case SSL_ERROR_SYSCALL:
-      warn("Unable to do SSL handshake with %s:\n %m", conn->ip);
+      if (errno != 0)
+	warn("Unable to do SSL handshake with %s:\n %m", conn->ip);
       shutdown_connection(loop, conn);
       break;
     default:

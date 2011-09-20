@@ -74,7 +74,7 @@ var rfc = function() {
 			     800);
 	    });
 	if (steps[step] !== undefined)
-	    steps[step]();
+	    setTimeout(steps[step], 200);
     }
 
     function checksessionid(port, cb) {
