@@ -150,7 +150,8 @@ setup_ssl(struct server *server) {
   if ((ctx = server->ctx = SSL_CTX_new(SSLv23_server_method())) == NULL)
     fail("Unable to create SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
-  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
+  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_ALL |
+		      SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 
   /* Load certificate and key */
   if (SSL_CTX_use_certificate_file(ctx,
