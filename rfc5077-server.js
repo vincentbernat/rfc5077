@@ -1,6 +1,61 @@
 var rfc = function() {
 
+    var ports = [];
     var step = 0;
+    var steps = {
+	/* Grab list of servers */
+	1: function() {
+	    $.ajax({
+		url: "servers?callback=?",
+		dataType: "jsonp",
+		success: function(data) {
+		    ports = data.servers;
+		    for (var i = 0; i < ports.length; i++) {
+			var el = $("#ports")
+			if (i > 0) el.append(", ");
+			$("<a href='https://"
+			  + location.hostname +":"
+			  + ports[i] + "'>"
+			  + ports[i] + "</a>").appendTo(el);
+		    }
+		    
+		    /* Setup the start button */
+		    $("#start").click(function() {
+			nextstep();
+		    });
+
+		    nextstep();
+		}});
+	},
+	/* Get cipher */
+	3: function() {
+	    $.ajax({
+		url: "session?callback=?",
+		dataType: "jsonp",
+		success: function(data) {
+		    var cipher = data.cipher;
+		    $("#cipher").text(cipher);
+		    nextstep();
+		}});
+	},
+	/* Session ID without tickets */
+	4: function() {
+	    checksessionid(ports[1], function(same) {
+		var wotickets = same;
+		$("#resume1").text(wotickets?"does":"does not");
+		nextstep();
+	    });
+	},
+	/* Session ID with tickets */
+	5: function() {
+	    checksessionid(ports[3], function(same) {
+		var wtickets = same;
+		$("#resume2").text(wtickets?"does":"does not");
+		nextstep();
+	    });
+	}
+    };
+
     function nextstep() {
 	$(".step" + step)
 	    .filter(".running")
@@ -18,6 +73,8 @@ var rfc = function() {
 		    .animate({scrollTop: $('body').height()},
 			     800);
 	    });
+	if (steps[step] !== undefined)
+	    steps[step]();
     }
 
     function checksessionid(port, cb) {
@@ -58,64 +115,6 @@ var rfc = function() {
 	/* Fill navigator name */
 	$("#ua").text(navigator.userAgent);
 	nextstep();
-
-	/* Grab list of servers */
-	$.ajax({
-	    url: "servers?callback=?",
-	    dataType: "jsonp",
-	    success: function(data) {
-		var ports = data.servers;
-		for (var i = 0; i < ports.length; i++) {
-		    var el = $("#ports")
-		    if (i > 0) el.append(", ");
-		    $("<a href='https://"
-		      + location.hostname +":"
-		      + ports[i] + "'>"
-		      + ports[i] + "</a>").appendTo(el);
-		}
-
-		/* Setup the start button */
-		$("#start").click(function() {
-		    nextstep();
-		    $.ajax({
-			url: "session?callback=?",
-			dataType: "jsonp",
-			success: function(data) {
-			    var cipher = data.cipher;
-			    $("#cipher").text(cipher);
-			    nextstep();
-			    checksessionid(ports[1], function(same) {
-				var wotickets = same;
-				$("#resume1").text(wotickets?"does":"does not");
-				nextstep();
-				checksessionid(ports[3], function(same) {
-				    var wtickets = same;
-				    $("#resume2").text(wtickets?"does":"does not");
-				    /* Setup the submit button */
-				    $("#submit").click(function() {
-					nextstep();
-					$.ajax({
-					    url: "save/"
-						+ (wotickets?1:0) + "/"
-						+ (wtickets?1:0)
-						+ "?callback=?",
-					    dataType: "jsonp",
-					    success: function(data) {
-						/* We don't care of the result */
-						nextstep();
-					    }
-					});
-				    });
-				    nextstep();
-				});
-			    });
-			}
-		    });
-		});
-
-		/* Display it */
-		nextstep();
-	    }
-	});
     });
+
 }();

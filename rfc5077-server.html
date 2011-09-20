@@ -7,7 +7,7 @@
   * { margin: 0; padding: 0; }
   body { font-family: sans-serif; }
   h1 { color: #DDD;
-       width: 90%;
+       width: 100%;
        background-color: #222;
        background-image: -moz-linear-gradient(center top, #222, #333);
        background-image: -ms-linear-gradient(center top, #222, #333);
@@ -15,8 +15,8 @@
        background-image: -webkit-gradient(linear, center top, left bottom, from(#222), to(#333)); 
        background-image: -webkit-linear-gradient(center top, #222, #333);
        background-image: linear-gradient(center top, #222, #333);
-       border-bottom: 3px solid #FF7F00;
-       padding: 0.5em 5%; }
+       border-bottom: 3px solid #FF7F00; }
+  h1 span { display: block; padding: 0.5em 5%; }
   ul { max-width: 30em; padding: 1em 10%; list-style: none; }
   .step { padding: 0.8em 1em;
           display: none; }
@@ -28,7 +28,7 @@
 </style>
 </head>
 <body>
-  <h1>Test for RFC 5077 support</h1>
+  <h1><span>Test for RFC 5077 support</span></h1>
 
       <ul>
 	<li class="step step0 running current">
@@ -36,7 +36,7 @@
 	</li>
 
 	<li class="step step0 done">
-	  Your user agent is <code id="ua"></code>.
+	  Your user agent is <code id="ua">?</code>.
 	</li>
 
 	<li class="step step1 running">
@@ -63,14 +63,14 @@
 	  Checking used cipher suite.
 	</li>
 	<li class="step step3 done">
-	  Your browser is actually using <code id="cipher"></code> cipher suite.
+	  Your browser is actually using <code id="cipher">?</code> cipher suite.
 	</li>
 
 	<li class="step step4 running">
 	  Checking support for session resume <strong>without</strong> tickets.
 	</li>
 	<li class="step step4 done">
-	  Your browser <strong id="resume1"></strong> support session resume
+	  Your browser <strong id="resume1">?</strong> support session resume
 	  without tickets.
 	</li>
 
@@ -78,32 +78,12 @@
 	  Checking support for session resume <strong>with</strong> tickets.
 	</li>
 	<li class="step step5 done">
-	  Your browser <strong id="resume2"></strong> support session resume
+	  Your browser <strong id="resume2">?</strong> support session resume
 	  with tickets.
 	</li>
 
 	<li class="step step6 running">
-	  <form>
-	    That's all! We'd like to track this result. Would you be OK
-	    to send those data (the cipher suite, your user agent and if
-	    it supports session resume without and with tickets, no
-	    more)? <input id="submit" type="button" value="Sure, go ahead!">
-	  </form>
-	</li>
-	<li class="step step6 done">
-	  Thanks. We promise to publish those results when we will get
-	  enough feedback.
-	</li>
-
-	<li class="step step7 running">
-	  Sending those results home.
-	</li>
-	<li class="step step7 done">
-	  Results sent succesfully!
-	</li>
-
-	<li class="step step8 running">
-	  Thanks for your participation.
+	    That's all!
 	</li>
 
       </ul>
