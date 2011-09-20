@@ -17,8 +17,10 @@ nss-client.o: nss-client.c
 
 rfc5077-client: rfc5077-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
-rfc5077-server: rfc5077-server.o common.o
-	$(CC) -o $@ $^ $(LDFLAGS) $(shell curl-config --libs) -lssl -lcrypto
+rfc5077-server: rfc5077-server.o common.o http-parser/libhttp_parser.a
+	$(CC) -o $@ $^ $(LDFLAGS) -lev -lssl -lcrypto
+http-parser/libhttp_parser.a: http-parser/http_parser.c
+	$(MAKE) -C http-parser package
 
 rfc5077-pcap: rfc5077-pcap.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(shell pcap-config --libs)
@@ -33,5 +35,6 @@ dh.pem:
 
 clean:
 	rm -f *.pem *.o $(EXEC)
+	$(MAKE) -C http-parser clean
 
 .PHONY: clean certificates all

@@ -49,11 +49,9 @@ will respectively behave as follow:
  3. Session cache, ticket support
  4. No session cache, ticket support
 
-This server can only serve on request simultanously. It is not meant
-to be standard compliant. Don't put it on the Internet. Moreover,
-since it does not handle simultaneous connections, some browsers (IE,
-Chrome) will choke. Therefore, it is not able to fullfil its usage for
-all browsers...
+While this server has some shortcoming, it should be relatively
+performant and you can try to bench it. It should also be secure
+enough to be put on the Internet.
 
 Misc
 ----

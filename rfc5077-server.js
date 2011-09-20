@@ -95,8 +95,8 @@ var rfc = function() {
 				    $("#submit").click(function() {
 					nextstep();
 					$.ajax({
-					    url: "save-"
-						+ (wotickets?1:0) + "-"
+					    url: "save/"
+						+ (wotickets?1:0) + "/"
 						+ (wtickets?1:0)
 						+ "?callback=?",
 					    dataType: "jsonp",
