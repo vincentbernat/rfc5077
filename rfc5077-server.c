@@ -296,8 +296,9 @@ http_handle_file(struct ev_loop *loop, struct connection *conn, void *data) {
   }
 
   /* Read file content (we may truncate) */
-  while ((n = read(fd, buf + m, buflen - 1 - m))) m += n;
+  while ((n = read(fd, buf + m, buflen - 1 - m)) > 0) m += n;
   buf[m] = '\0';
+  close(fd);
 
   /* Answer */
   http_answer(loop, conn, 200, "OK", type, buf);
