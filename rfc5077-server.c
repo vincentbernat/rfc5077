@@ -128,7 +128,7 @@ setup_socket(struct server *server) {
     if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == -1)
       fail("Unable to bind to ‘%s‘:\n%m", server->port);
 
-#if TCP_DEFER_ACCEPT
+#ifdef TCP_DEFER_ACCEPT
     setsockopt(sfd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &val, sizeof(val) );
 #endif
 
@@ -800,7 +800,7 @@ handle_accept(struct ev_loop *loop, ev_io *w, int revents) {
 
   /* SSL setup */
   long mode = SSL_MODE_ENABLE_PARTIAL_WRITE;
-#if SSL_MODE_RELEASE_BUFFERS
+#ifdef SSL_MODE_RELEASE_BUFFERS
   mode |= SSL_MODE_RELEASE_BUFFERS;
 #endif
   conn->ssl = SSL_new(conn->server->ctx);
