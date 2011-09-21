@@ -73,6 +73,8 @@ struct connection {
   ev_io          ev_write;	    /* Writing to the client */
   ev_io          ev_read_handshake; /* SSL handshake with the client (read) */
   ev_io          ev_write_handshake;/* SSL handshake with the client (write) */
+  ev_io          ev_read_shutdown;  /* SSL shutdown with the client (read) */
+  ev_io          ev_write_shutdown; /* SSL shutdown with the client (write) */
   ev_timer       ev_timeout;	    /* Basic timeout */
   char           buffer[BUFSIZE];   /* Read/write buffer */
   int            buffer_size;
@@ -199,6 +201,8 @@ shutdown_connection(struct ev_loop *loop, struct connection *conn) {
   ev_io_stop(loop, &conn->ev_write);
   ev_io_stop(loop, &conn->ev_read_handshake);
   ev_io_stop(loop, &conn->ev_write_handshake);
+  ev_io_stop(loop, &conn->ev_read_shutdown);
+  ev_io_stop(loop, &conn->ev_write_shutdown);
   ev_timer_stop(loop, &conn->ev_timeout);
   close(conn->client);
   SSL_set_shutdown(conn->ssl, SSL_SENT_SHUTDOWN);
@@ -209,12 +213,27 @@ shutdown_connection(struct ev_loop *loop, struct connection *conn) {
   free(conn->protocol);
   free(conn);
 }
+
+/* Be ready for shutdown */
+static void
+start_shutdown(struct ev_loop *loop, struct connection *conn) {
+  /* Stop any pending reading */
+  ev_io_stop(loop, &conn->ev_read);
+  ev_io_stop(loop, &conn->ev_write);
+  /* Start shutdown loop */
+  ev_io_start(loop, &conn->ev_write_shutdown);
+}
+
 /* Handle shutdown in case of an SSL error */
 static void
 shutdown_connection_with_err(struct ev_loop *loop, struct connection *conn,
 			     int err) {
   int noerr = 0;
-  if (err == SSL_ERROR_ZERO_RETURN)
+  if (SSL_get_shutdown(conn->ssl) & SSL_RECEIVED_SHUTDOWN) {
+    start_shutdown(loop, conn);
+    return;
+  }
+  else if (err == SSL_ERROR_ZERO_RETURN)
     warn("Connection with %s closed while receiving data", conn->ip);
   else if (err == SSL_ERROR_SYSCALL) {
     if (errno != 0)
@@ -258,7 +277,7 @@ http_answer(struct ev_loop *loop, struct connection *conn,
 	       jsonp?");":"");
   if (n == -1 || n >= sizeof(conn->buffer)) {
     warn("Answer too large");	/* Should not happen */
-    shutdown_connection(loop, conn);
+    start_shutdown(loop, conn);
     return;
   }
   conn->buffer_size = n;
@@ -616,6 +635,38 @@ handle_client_handshake(struct ev_loop *loop, ev_io *w, int revents) {
   }
 }
 
+/* Do the SSL shutdown. This part seems a bit buggy, we ensure we
+   don't loop and always call shutdown_connection() in case of any
+   problem. */
+static void
+handle_client_shutdown(struct ev_loop *loop, ev_io *w, int revents) {
+  struct connection *conn = (struct connection *)w->data;
+  ev_timer_again(loop, &conn->ev_timeout); /* Reinit timeout */
+
+  int err = 0, try = 2;
+  while (err == 0 && try-- > 0)
+    err = SSL_shutdown(conn->ssl);
+  if (err == 1)
+    /* Handshake is successful. Terminate. */
+    shutdown_connection(loop, conn);
+  else {
+    err = SSL_get_error(conn->ssl, err);
+    switch (err) {
+    case SSL_ERROR_WANT_READ:
+      ev_io_stop(loop, &conn->ev_write_shutdown);
+      ev_io_start(loop, &conn->ev_read_shutdown);
+      break;
+    case SSL_ERROR_WANT_WRITE:
+      ev_io_stop(loop, &conn->ev_read_shutdown);
+      ev_io_start(loop, &conn->ev_write_shutdown);
+      break;
+    default:
+      /* We did our best, just shut the connection */
+      shutdown_connection(loop, conn);
+    }
+  }
+}
+
 /* Handle read from the client (request) */
 static void
 handle_client_read(struct ev_loop *loop, ev_io *w, int revents) {
@@ -683,7 +734,7 @@ handle_client_write(struct ev_loop *loop, ev_io *w, int revents) {
 	  conn->code,		  /* 200 */
 	  conn->size,		  /* 4874 */
 	  conn->ua?conn->ua:"");  /* Mozilla/5.0 ... */
-      shutdown_connection(loop, conn);
+      start_shutdown(loop, conn);
     }
   } else {
     n = SSL_get_error(conn->ssl, n);
@@ -766,6 +817,10 @@ handle_accept(struct ev_loop *loop, ev_io *w, int revents) {
   conn->ev_read_handshake.data = conn;
   ev_io_init(&conn->ev_write_handshake, handle_client_handshake, conn->client, EV_WRITE);
   conn->ev_write_handshake.data = conn;
+  ev_io_init(&conn->ev_read_shutdown, handle_client_shutdown, conn->client, EV_READ);
+  conn->ev_read_shutdown.data = conn;
+  ev_io_init(&conn->ev_write_shutdown, handle_client_shutdown, conn->client, EV_WRITE);
+  conn->ev_write_shutdown.data = conn;
   ev_init(&conn->ev_timeout, handle_client_timeout);
   conn->ev_timeout.repeat = 10.;
   conn->ev_timeout.data = conn;
