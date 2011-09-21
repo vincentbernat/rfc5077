@@ -5,9 +5,8 @@ var rfc = function() {
     var steps = {
 	/* Grab list of servers */
 	1: function() {
-	    $.ajax({
+	    $.jsonp({
 		url: "servers?callback=?",
-		dataType: "jsonp",
 		success: function(data) {
 		    ports = data.servers;
 		    for (var i = 0; i < ports.length; i++) {
@@ -29,9 +28,8 @@ var rfc = function() {
 	},
 	/* Get cipher */
 	3: function() {
-	    $.ajax({
+	    $.jsonp({
 		url: "session?callback=?",
-		dataType: "jsonp",
 		success: function(data) {
 		    var cipher = data.cipher;
 		    $("#cipher").text(cipher);
@@ -80,15 +78,15 @@ var rfc = function() {
     function checksessionid(port, cb) {
 	/* Ask for /session several time and check that session ID are
 	 * still the same */
-	var tries = 4;
+	var tries = 4; var errtries = 2;
 	var sessions = [];
+	var url = "https://"
+	    + location.hostname
+	    + ":" + port
+	    + "/session";
 	var dotry = function() {
-	    $.ajax({
-		url: "https://"
-		    + location.hostname
-		    + ":" + port
-		    + "/session?callback=?",
-		dataType: "jsonp",
+	    $.jsonp({
+		url: url + "?callback=?",
 		success: function(data) {
 		    sessions.push(data.sessionid);
 		    tries = tries - 1;
@@ -105,6 +103,14 @@ var rfc = function() {
 			/* Maybe there is no session at all */
 			cb(sessions[1] !== '');
 		    } else dotry();
+		},
+		error: function() {
+		    /* Because of some obscure bug in Internet
+		       Explorer SSL handshake may fail the first time
+		       we request something on server without cache
+		       and with tickets. */
+		    errtries -= 1;
+		    if (errtries > 0) dotry();
 		}
 	    });
 	};

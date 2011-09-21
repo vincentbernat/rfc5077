@@ -276,8 +276,8 @@ http_answer(struct ev_loop *loop, struct connection *conn,
 	       body,
 	       jsonp?");":"");
   if (n == -1 || n >= sizeof(conn->buffer)) {
-    warn("Answer too large");	/* Should not happen */
-    start_shutdown(loop, conn);
+    http_answer(loop, conn, 500, "Internal Error", "text/html",
+		"<html><body><h1>Answer too large</h1></body></html>\r\n");
     return;
   }
   conn->buffer_size = n;
@@ -421,7 +421,8 @@ http_handle_servers(struct ev_loop *loop, struct connection *conn, void *_) {
 
 static struct handler http_handlers[] = {
   { "/",                  http_handle_file, "rfc5077-server.html" },
-  { "/rfc5077-server.js", http_handle_file, "rfc5077-server.js" },
+  { "/rfc5077-server.js", http_handle_file, "js/rfc5077-server.js" },
+  { "/jquery.jsonp.js",   http_handle_file, "js/jquery.jsonp-2.1.4.min.js" },
   { "/session",           http_handle_session },
   { "/params" ,           http_handle_params },
   { "/servers",           http_handle_servers },
