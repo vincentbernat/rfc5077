@@ -24,7 +24,9 @@ var rfc = function() {
 		    });
 
 		    nextstep();
-		}});
+		},
+		error: error
+	    });
 	},
 	/* Get cipher */
 	3: function() {
@@ -34,7 +36,9 @@ var rfc = function() {
 		    var cipher = data.cipher;
 		    $("#cipher").text(cipher);
 		    nextstep();
-		}});
+		},
+		error: error
+	    });
 	},
 	/* Session ID without tickets */
 	4: function() {
@@ -75,6 +79,10 @@ var rfc = function() {
 	    setTimeout(steps[step], 200);
     }
 
+    function error() {
+	$(".error").fadeIn(200);
+    }
+
     function checksessionid(port, cb) {
 	/* Ask for /session several time and check that session ID are
 	 * still the same */
@@ -110,7 +118,8 @@ var rfc = function() {
 		       we request something on server without cache
 		       and with tickets. */
 		    errtries -= 1;
-		    if (errtries > 0) dotry();
+		    if (errtries > 0) dotry()
+		    else error();
 		}
 	    });
 	};
