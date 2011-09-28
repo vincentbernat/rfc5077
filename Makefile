@@ -1,8 +1,12 @@
 CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
 LDFLAGS=
-EXEC=openssl-client gnutls-client nss-client rfc5077-client rfc5077-server rfc5077-pcap
+EXEC=rfc5077-client rfc5077-server rfc5077-pcap openssl-client gnutls-client nss-client 
 
-all: $(EXEC)
+all:
+	for e in $(EXEC); do \
+		echo "******* Build $$e" ; \
+		$(MAKE) $$e || echo "!!!!!!!! Build of $$e failed" ; \
+	done
 
 openssl-client: openssl-client.o common-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lssl -lcrypto
