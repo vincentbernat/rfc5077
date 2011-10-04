@@ -143,6 +143,10 @@ setup_socket(struct server *server) {
   freeaddrinfo(result);
 }
 
+#ifndef SSL_OP_NO_COMPRESSION
+#define SSL_OP_NO_COMPRESSION 0
+#endif
+
 /* Setup SSL context for each server */
 static void
 setup_ssl(struct server *server) {
