@@ -1,5 +1,6 @@
 CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_POSIX_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE
 LDFLAGS=
+EVCFLAGS=$(shell pkg-config --silence-errors --cflags libev)
 OPENSSL_LIBS=$(shell pkg-config --libs openssl)
 EXEC=rfc5077-client rfc5077-server rfc5077-pcap openssl-client gnutls-client nss-client 
 
@@ -22,6 +23,9 @@ nss-client: nss-client.o common-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(shell nss-config --libs) $(shell nspr-config --libs)
 nss-client.o: nss-client.c
 	$(CC) $(CFLAGS) $(shell nss-config --cflags) $(shell nspr-config --cflags) -c -o $@ $^
+
+rfc5077-server.o: rfc5077-server.c
+	$(CC) $(CFLAGS) $(EVCFLAGS) -c -o $@ $^
 
 rfc5077-client: rfc5077-client.o common.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(OPENSSL_LIBS)
