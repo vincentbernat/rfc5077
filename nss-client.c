@@ -140,7 +140,7 @@ connect_ssl(char *host, char *port,
     if ((err = SSL_AuthCertificateHook(sslSocket, nss_auth_cert_hook, NULL)) != SECSuccess)
       fail("Unable to register certificate check hook:\n%s", SECU_ErrorString(PR_GetError()));
 
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     if ((err = SSL_ResetHandshake(sslSocket, PR_FALSE)) != SECSuccess)
       fail("Unable to negociate TLS (1/2):\n%s", SECU_ErrorString(PR_GetError()));
     if ((err = SSL_ForceHandshake(sslSocket)) != SECSuccess)

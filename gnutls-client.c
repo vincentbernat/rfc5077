@@ -92,10 +92,10 @@ connect_ssl(char *host, char *port,
     }
 
     s = connect_socket(addr, host, port);
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     gnutls_transport_set_ptr(session, (gnutls_transport_ptr_t)(uintptr_t)s);
     if ((err = gnutls_handshake(session))) {
-      fail("Unable to start TLS negociation:\n%s",
+      fail("Unable to start TLS renegotiation:\n%s",
 	   gnutls_strerror(err));
     }
 

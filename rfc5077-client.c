@@ -264,7 +264,7 @@ tests(SSL_CTX *ctx, struct addrinfo *hosts, int tickets) {
 	}
       }
       if (SSL_connect(ssl) != 1)
-	fail("Unable to start TLS negociation with ‘%s’:\n%s",
+	fail("Unable to start TLS renegotiation with ‘%s’:\n%s",
 	     name,
 	     ERR_error_string(ERR_get_error(), NULL));
 

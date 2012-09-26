@@ -49,7 +49,7 @@ connect_ssl(char *host, char *port,
   addr = solve(host, port);
   do {
     s = connect_socket(addr, host, port);
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     if ((ssl = SSL_new(ctx)) == NULL)
       fail("Unable to create new SSL struct:\n%s",
 	   ERR_error_string(ERR_get_error(), NULL));
@@ -61,7 +61,7 @@ connect_ssl(char *host, char *port,
       }
     }
     if (SSL_connect(ssl) != 1)
-      fail("Unable to start TLS negociation:\n%s",
+      fail("Unable to start TLS renegotiation:\n%s",
 	   ERR_error_string(ERR_get_error(), NULL));
 
     start("Check if session was reused");
