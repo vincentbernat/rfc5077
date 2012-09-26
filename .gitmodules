@@ -3,4 +3,4 @@
 	url = git://github.com/shon/httpagentparser.git
 [submodule "http-parser"]
 	path = http-parser
-	url = git://github.com/ry/http-parser.git
+	url = https://github.com/joyent/http-parser
