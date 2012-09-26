@@ -91,3 +91,4 @@ On Fedora 17 the dependancies are:
  * libpcap-devel
  * libev-devel
  * nspr-devel
+ * pkgconfig
