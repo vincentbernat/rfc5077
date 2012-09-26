@@ -43,6 +43,12 @@ connect_ssl(char *host, char *port,
   gnutls_session_t                 session;
   char                            *session_data = NULL;
   size_t                           session_data_size = 0;
+  char                            *session_id = NULL;
+  size_t                           session_id_size = 0;
+  char                            *session_id_hex = NULL;
+  char                            *session_id_p = NULL;
+  unsigned                         session_id_idx;
+  const char const                *hex = "0123456789ABCDEF";
 
   start("Initialize GNU TLS library");
   if ((err = gnutls_global_init()))
@@ -116,12 +122,45 @@ connect_ssl(char *host, char *port,
     session_data_size = 8192;
     if ((err = gnutls_session_get_data(session, NULL, &session_data_size)))
       warn("No session available:\n%s",
-	   gnutls_strerror(err));
+          gnutls_strerror(err));
     else {
       session_data = malloc(session_data_size);
       if (!session_data) fail("No memory available");
       gnutls_session_get_data(session, session_data, &session_data_size);
-      /* TODO: display some details about session */
+
+      if ((err = gnutls_session_get_id( session, NULL, &session_id_size)))
+         warn("No session id available:\n%s",
+             gnutls_strerror(err));
+      session_id = malloc(session_id_size);
+      if (!session_id) fail("No memory available");
+      else {
+        if ((err = gnutls_session_get_id( session, session_id, &session_id_size)))
+          warn("No session id available:\n%s",
+            gnutls_strerror(err));
+        session_id_hex = malloc(session_id_size * 2 + 1);
+        if (!session_id_hex) fail("No memory available");
+        else {
+          for (session_id_p = session_id_hex, session_id_idx = 0;
+               session_id_idx < session_id_size;
+               ++session_id_idx) {
+            *session_id_p++ = hex[ (session_id[session_id_idx] >> 4) & 0xf];
+            *session_id_p++ = hex[ session_id[session_id_idx] & 0xf];
+          }
+          *session_id_p = '\0';
+
+          end("Session context:\nProtocol : %s\nCipher : %s\nKx : %s\nCompression : %s\nPSK : %s\nID : %s",
+            gnutls_protocol_get_name( gnutls_protocol_get_version(session) ),
+            gnutls_cipher_get_name( gnutls_cipher_get(session) ),
+            gnutls_kx_get_name( gnutls_kx_get(session) ),
+            gnutls_compression_get_name( gnutls_compression_get(session)),
+            gnutls_psk_server_get_username(session),
+            session_id_hex
+            );
+          free(session_id_hex);
+        }
+        free(session_id);
+      }
+        
     }
     if (!use_sessionid && !use_ticket) {
       free(session_data); session_data = NULL;
