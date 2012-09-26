@@ -113,6 +113,7 @@ connect_ssl(char *host, char *port,
     if (session_data) {
       free(session_data); session_data = NULL;
     }
+    session_data_size = 8192;
     if ((err = gnutls_session_get_data(session, NULL, &session_data_size)))
       warn("No session available:\n%s",
 	   gnutls_strerror(err));
