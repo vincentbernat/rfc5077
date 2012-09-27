@@ -94,7 +94,8 @@ nss_auth_cert_hook(void *arg, PRFileDesc *fd, PRBool checksig,
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay) {
   SECStatus        err;
   PRFileDesc      *tcpSocket, *sslSocket;
   int              s, n;
@@ -142,9 +143,9 @@ connect_ssl(char *host, char *port,
 
     start("Start TLS renegotiation");
     if ((err = SSL_ResetHandshake(sslSocket, PR_FALSE)) != SECSuccess)
-      fail("Unable to negociate TLS (1/2):\n%s", SECU_ErrorString(PR_GetError()));
+      fail("Unable to renegotiation TLS (1/2):\n%s", SECU_ErrorString(PR_GetError()));
     if ((err = SSL_ForceHandshake(sslSocket)) != SECSuccess)
-      fail("Unable to negociate TLS (2/2):\n%s", SECU_ErrorString(PR_GetError()));
+      fail("Unable to renegotiation TLS (2/2):\n%s", SECU_ErrorString(PR_GetError()));
 
     /* TODO: session resume check */
 
@@ -168,7 +169,12 @@ connect_ssl(char *host, char *port,
 
     start("End TLS connection");
     PR_Close(sslSocket);
-  } while (reconnect--);
+    if (--reconnect) break;
+    else {         
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
   SSL_ClearSessionCache();
   NSS_Shutdown();
   PR_Cleanup();

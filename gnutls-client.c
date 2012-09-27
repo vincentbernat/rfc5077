@@ -34,7 +34,8 @@ debug(int level, const char *s) {
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay) {
   struct addrinfo* addr;
   int err, s;
   char buffer[256];
@@ -190,7 +191,12 @@ connect_ssl(char *host, char *port,
     gnutls_bye(session, GNUTLS_SHUT_RDWR);
     close(s);
     gnutls_deinit (session);
-  } while (reconnect--);
+    if (--reconnect) break;
+    else {
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
 
   if (session_data) free(session_data);
   gnutls_anon_free_client_credentials(anoncred);

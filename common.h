@@ -3,7 +3,7 @@
 /* Client side */
 extern int
 client(int, char * const [],
-       int (*)(char *, char *, int, int, int));
+       int (*)(char *, char *, int, int, int, int));
 extern int
 connect_socket(struct addrinfo *, char *, char *);
 extern struct addrinfo*

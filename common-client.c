@@ -32,30 +32,32 @@
 /* Display usage for clients and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-r] [-S] [-T] host port\n"
+  fail("Usage: %s [-r] [-d {secs}] [-S] [-T] host port\n"
        "\n"
        " Connect to an SSL HTTP server and requests `/'\n"
        "\n"
        "Options:\n"
        "\t-r: reconnect (may be repeated)\n"
+       "\t-d: delay between each renegotiation\n"
        "\t-S: disable support for session identifier\n"
        "\t-T: disable support for tickets", name);
 }
 
 /* Parse arguments and call back connect function */
 int client(int argc, char * const argv[],
-	   int (*connect)(char *, char *, int, int, int)) {
+	   int (*connect)(char *, char *, int, int, int, int)) {
   int   opt, status;
   int   reconnect     = 0;
   int   use_sessionid = 1;
   int   use_ticket    = 1;
+  int   delay         = 0;
   char *host          = NULL;
   char *port          = NULL;
 
   /* Parse arguments */
   opterr = 0;
   start("Parse arguments");
-  while ((opt = getopt(argc, argv, "rST")) != -1) {
+  while ((opt = getopt(argc, argv, "rd:ST")) != -1) {
     switch (opt) {
     case 'r':
       reconnect++;
@@ -65,6 +67,9 @@ int client(int argc, char * const argv[],
       break;
     case 'T':
       use_ticket = 0;
+      break;
+    case 'd':
+      delay = atoi(optarg);
       break;
     default:
       usage(argv[0]);
@@ -77,7 +82,7 @@ int client(int argc, char * const argv[],
   port = argv[optind + 1];
 
   /* Callback */
-  status = connect(host, port, reconnect, use_sessionid, use_ticket);
+  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay);
   end(NULL);
   return status;
 }

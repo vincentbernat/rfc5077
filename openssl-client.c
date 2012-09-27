@@ -26,7 +26,8 @@
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay) {
   SSL_CTX*         ctx;
   SSL*             ssl;
   SSL_SESSION*     ssl_session = NULL;
@@ -118,7 +119,13 @@ connect_ssl(char *host, char *port,
     SSL_shutdown(ssl);
     close(s);
     SSL_free(ssl);
-  } while (reconnect--);
+    if (--reconnect) break;
+    else {         
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
+
   SSL_CTX_free(ctx);
   return 0;
 }
