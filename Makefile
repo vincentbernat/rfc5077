@@ -4,11 +4,7 @@ EVCFLAGS=$(shell pkg-config --silence-errors --cflags libev)
 OPENSSL_LIBS=$(shell pkg-config --libs openssl)
 EXEC=rfc5077-client rfc5077-server rfc5077-pcap openssl-client gnutls-client nss-client 
 
-all:
-	for e in $(EXEC); do \
-		echo "******* Build $$e" ; \
-		$(MAKE) $$e || echo "!!!!!!!! Build of $$e failed" ; \
-	done
+all: $(EXEC)
 
 openssl-client.o: openssl-client.c
 	$(CC) $(CFLAGS) $(shell pkg-config --cflags openssl) -c -o $@ $^
