@@ -199,7 +199,8 @@ connect_ssl(char *host, char *port,
     gnutls_bye(session, GNUTLS_SHUT_RDWR);
     close(s);
     gnutls_deinit (session);
-    if (--reconnect) break;
+    --reconnect;
+    if (reconnect < 0) break;
     else {
       start("waiting %d seconds",delay);
       sleep(delay);

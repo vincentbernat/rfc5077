@@ -125,7 +125,7 @@ connect_ssl(char *host, char *port,
     fail("Unable to configure US domestic policy:\n%s", SECU_ErrorString(PR_GetError()));
 
   if (client_cert || client_key) {
-    fail("Client certifcates not supported");
+    fail("Client certificates not supported");
   }
   addr = solve(host, port);
   do {
@@ -173,7 +173,8 @@ connect_ssl(char *host, char *port,
 
     start("End TLS connection");
     PR_Close(sslSocket);
-    if (--reconnect) break;
+    --reconnect;
+    if (reconnect < 0) break;
     else {         
       start("waiting %d seconds",delay);
       sleep(delay);
