@@ -27,7 +27,8 @@ int
 connect_ssl(char *host, char *port,
 	    int reconnect,
 	    int use_sessionid, int use_ticket,
-      int delay) {
+      int delay,
+      const char *client_cert, const char *client_key) {
   SSL_CTX*         ctx;
   SSL*             ssl;
   SSL_SESSION*     ssl_session = NULL;
@@ -42,6 +43,16 @@ connect_ssl(char *host, char *port,
     fail("Unable to initialize SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
 
+  if (client_cert || client_key) {
+    if (SSL_CTX_use_certificate_chain_file(ctx,client_cert)==0) {
+      fail("failed to read X509 certificate from file %s into PEM format",client_key);
+    }
+  }
+  if (client_key) {
+    if (SSL_CTX_use_PrivateKey_file(ctx,client_key,SSL_FILETYPE_PEM)==0) {
+      fail("failed to read private key from file %s into PEM format",client_key);
+    }
+  }
   if (!use_ticket) {
     start("Disable use of session tickets (RFC 5077)");
     SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);

@@ -35,7 +35,9 @@ int
 connect_ssl(char *host, char *port,
 	    int reconnect,
 	    int use_sessionid, int use_ticket,
-      int delay) {
+      int delay,
+      const char *client_cert,
+      const char *client_key) {
   struct addrinfo* addr;
   int err, s;
   char buffer[256];
@@ -77,11 +79,17 @@ connect_ssl(char *host, char *port,
       fail("Unable to initialize cipher suites:\n%s",
 	   gnutls_strerror(err));
     gnutls_dh_set_prime_bits(session, 512);
-    if ((err = gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred)))
-      fail("Unable to set anonymous credentials for session:\n%s",
-	   gnutls_strerror(err));
+    if (client_cert == NULL) {
+      if ((err = gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred)))
+        fail("Unable to set anonymous credentials for session:\n%s",
+	     gnutls_strerror(err));
+    } else {
+      if ((err = gnutls_certificate_set_x509_key_file(xcred, client_cert, client_key, GNUTLS_X509_FMT_PEM))) {
+        fail("failed to load x509 certificate from file %s or key from %s: %s",client_cert,client_key,gnutls_strerror(err));
+      }
+    }
     if ((err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, xcred)))
-      fail("Unable to set X509 credentials for session:\n%s",
+      fail("Unable to set credentials for session:\n%s",
 	   gnutls_strerror(err));
     
     if (use_ticket) {

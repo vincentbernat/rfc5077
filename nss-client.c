@@ -95,7 +95,8 @@ int
 connect_ssl(char *host, char *port,
 	    int reconnect,
 	    int use_sessionid, int use_ticket,
-      int delay) {
+      int delay,
+      const char *client_cert, const char *client_key) {
   SECStatus        err;
   PRFileDesc      *tcpSocket, *sslSocket;
   int              s, n;
@@ -123,6 +124,9 @@ connect_ssl(char *host, char *port,
   if ((err = NSS_SetDomesticPolicy()) != SECSuccess)
     fail("Unable to configure US domestic policy:\n%s", SECU_ErrorString(PR_GetError()));
 
+  if (client_cert || client_key) {
+    fail("Client certifcates not supported");
+  }
   addr = solve(host, port);
   do {
     s = connect_socket(addr, host, port);
