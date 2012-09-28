@@ -32,14 +32,18 @@
 /* Display usage and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s host [host ...]\n"
+  fail("Usage: %s [-p {port}] host [host ...]\n"
        "\n"
-       " Check if a host or a pool of hosts support RFC 5077.", name);
+       " Check if a host or a pool of hosts support RFC 5077."
+       "\n"
+       "Options:\n"
+       "\t-p: specify a port to connect to\n"
+       , name);
 }
 
 /* Solve hostname to IPs */
 static void
-resolve(const char *host, struct addrinfo **result) {
+resolve(const char *host, const char *port, struct addrinfo **result) {
   int              err, count;
   char             name[INET6_ADDRSTRLEN*4];
   char            *p;
@@ -52,8 +56,8 @@ resolve(const char *host, struct addrinfo **result) {
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = 0;
   hints.ai_protocol = 0;
-  if ((err = getaddrinfo(host, PORT, &hints, result)) != 0)
-    fail("Unable to solve ‘%s:%s’:\n%s", host, PORT, gai_strerror(err));
+  if ((err = getaddrinfo(host, port, &hints, result)) != 0)
+    fail("Unable to solve ‘%s:%s’:\n%s", host, port, gai_strerror(err));
 
   count = 0;
   name[0] = '\0';
@@ -76,7 +80,7 @@ resolve(const char *host, struct addrinfo **result) {
       break;
     }
     if (err != 0)
-      fail("Unable to format ‘%s:%s’:\n%s\n%m", host, PORT, gai_strerror(err));
+      fail("Unable to format ‘%s:%s’:\n%s\n%m", host, port, gai_strerror(err));
     p = p + strlen(p);
   }
   end("Got %d result%s:%s", count, (count > 1)?"s":"", name);
@@ -213,7 +217,7 @@ resultinfo_write(const char *comment, struct resultinfo *result,
 }
 
 static struct resultinfo*
-tests(SSL_CTX *ctx, struct addrinfo *hosts, int tickets) {
+tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, int tickets) {
   SSL*                ssl;
   SSL_SESSION*        ssl_session = NULL;
   int                 s, err, n;
@@ -249,7 +253,7 @@ tests(SSL_CTX *ctx, struct addrinfo *hosts, int tickets) {
 	fail("Unable to create socket for ‘%s’:\n%m", name);
       if ((err = connect(s, current->ai_addr,
 			 current->ai_addrlen)) == -1)
-	fail("Unable to connect to ‘%s:%s’:\n%m", name, PORT);
+	fail("Unable to connect to ‘%s:%s’:\n%m", name, port);
 
       /* SSL handshake */
       if ((ssl = SSL_new(ctx)) == NULL)
@@ -313,16 +317,30 @@ tests(SSL_CTX *ctx, struct addrinfo *hosts, int tickets) {
 
 int
 main(int argc, char * const argv[]) {
+  int  opt;
+  char *port = PORT;
+
   /* We need at least one host */
   start("Check arguments");
-  if (argc < 2) usage(argv[0]);
+
+  while ((opt = getopt(argc, argv, "p:")) != -1) {
+    switch (opt) {
+    case 'p':
+      port = optarg;
+      break;
+    default:
+      usage(argv[0]);
+    }
+
+  }
+  if (argc <= optind) usage(argv[0]);
 
   /* Solve all hosts given on the command line */
   int              i;
   struct addrinfo *hosts, **next;
   next = &hosts;
-  for (i = 1; i < argc; i++) {
-    resolve(argv[i], next);
+  for (i = optind; i < argc; i++) {
+    resolve(argv[i], port, next);
     next = &((*next)->ai_next);
   }
 
@@ -357,12 +375,12 @@ main(int argc, char * const argv[]) {
     fail("Unable to create output file ‘%s’:\n%m", name);
 
   /* Run tests */
-  results = tests(ctx, hosts, 0);
+  results = tests(ctx, port, hosts, 0);
   resultinfo_display(results);
   resultinfo_write("Without tickets", results, output, 1);
   resultinfo_free(results);
 
-  results = tests(ctx, hosts, 1);
+  results = tests(ctx, port, hosts, 1);
   resultinfo_display(results);
   resultinfo_write("With tickets", results, output, 0);
   resultinfo_free(results);
