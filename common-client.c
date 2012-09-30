@@ -32,30 +32,38 @@
 /* Display usage for clients and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-r] [-S] [-T] host port\n"
+  fail("Usage: %s [-r] [-d {secs}] [-S] [-T] [-C {client_cert}] [-K {client_key} host port\n"
        "\n"
        " Connect to an SSL HTTP server and requests `/'\n"
        "\n"
        "Options:\n"
        "\t-r: reconnect (may be repeated)\n"
+       "\t-d: delay between each renegotiation in seconds\n"
        "\t-S: disable support for session identifier\n"
-       "\t-T: disable support for tickets", name);
+       "\t-T: disable support for tickets\n"
+       "\t-C: use a client certificate for the connection and this specifies a certificate as a file in PEM format. Optionally the key can be here too\n"
+       "\t-K: use the key {client_key}, a PEM formated key file, in the connection\n"
+       , name);
 }
 
 /* Parse arguments and call back connect function */
 int client(int argc, char * const argv[],
-	   int (*connect)(char *, char *, int, int, int)) {
+	   int (*connect)(char *, char *, int, int, int, int,
+                    const char *, const char *)) {
   int   opt, status;
   int   reconnect     = 0;
   int   use_sessionid = 1;
   int   use_ticket    = 1;
+  int   delay         = 0;
   char *host          = NULL;
   char *port          = NULL;
+  const char *client_cert   = NULL;
+  const char *client_key    = NULL;
 
   /* Parse arguments */
   opterr = 0;
   start("Parse arguments");
-  while ((opt = getopt(argc, argv, "rST")) != -1) {
+  while ((opt = getopt(argc, argv, "rd:STC:K:")) != -1) {
     switch (opt) {
     case 'r':
       reconnect++;
@@ -66,9 +74,24 @@ int client(int argc, char * const argv[],
     case 'T':
       use_ticket = 0;
       break;
+    case 'd':
+      delay = atoi(optarg);
+      break;
+    case 'C':
+      client_cert = optarg;
+      break;
+    case 'K':
+      client_key = optarg;
+      break;
     default:
       usage(argv[0]);
     }
+  }
+  if (client_key && !client_cert) {
+    fail("a client key_file is specified without a client_certificate file. If both are in the same file use -C");
+  }
+  if (client_cert && !client_key) {
+    client_key = client_cert;
   }
   if (optind != argc - 2)
     usage(argv[0]);
@@ -77,7 +100,7 @@ int client(int argc, char * const argv[],
   port = argv[optind + 1];
 
   /* Callback */
-  status = connect(host, port, reconnect, use_sessionid, use_ticket);
+  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay, client_cert, client_key);
   end(NULL);
   return status;
 }

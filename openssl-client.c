@@ -26,7 +26,9 @@
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay,
+      const char *client_cert, const char *client_key) {
   SSL_CTX*         ctx;
   SSL*             ssl;
   SSL_SESSION*     ssl_session = NULL;
@@ -41,6 +43,16 @@ connect_ssl(char *host, char *port,
     fail("Unable to initialize SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
 
+  if (client_cert || client_key) {
+    if (SSL_CTX_use_certificate_chain_file(ctx,client_cert)==0) {
+      fail("failed to read X509 certificate from file %s into PEM format",client_key);
+    }
+  }
+  if (client_key) {
+    if (SSL_CTX_use_PrivateKey_file(ctx,client_key,SSL_FILETYPE_PEM)==0) {
+      fail("failed to read private key from file %s into PEM format",client_key);
+    }
+  }
   if (!use_ticket) {
     start("Disable use of session tickets (RFC 5077)");
     SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
@@ -49,7 +61,7 @@ connect_ssl(char *host, char *port,
   addr = solve(host, port);
   do {
     s = connect_socket(addr, host, port);
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     if ((ssl = SSL_new(ctx)) == NULL)
       fail("Unable to create new SSL struct:\n%s",
 	   ERR_error_string(ERR_get_error(), NULL));
@@ -61,7 +73,7 @@ connect_ssl(char *host, char *port,
       }
     }
     if (SSL_connect(ssl) != 1)
-      fail("Unable to start TLS negociation:\n%s",
+      fail("Unable to start TLS renegotiation:\n%s",
 	   ERR_error_string(ERR_get_error(), NULL));
 
     start("Check if session was reused");
@@ -118,7 +130,14 @@ connect_ssl(char *host, char *port,
     SSL_shutdown(ssl);
     close(s);
     SSL_free(ssl);
-  } while (reconnect--);
+    --reconnect;
+    if (reconnect < 0) break;
+    else {         
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
+
   SSL_CTX_free(ctx);
   return 0;
 }

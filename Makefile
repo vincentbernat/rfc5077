@@ -4,11 +4,7 @@ EVCFLAGS=$(shell pkg-config --silence-errors --cflags libev)
 OPENSSL_LIBS=$(shell pkg-config --libs openssl)
 EXEC=rfc5077-client rfc5077-server rfc5077-pcap openssl-client gnutls-client nss-client 
 
-all:
-	for e in $(EXEC); do \
-		echo "******* Build $$e" ; \
-		$(MAKE) $$e || echo "!!!!!!!! Build of $$e failed" ; \
-	done
+all: $(EXEC)
 
 openssl-client.o: openssl-client.c
 	$(CC) $(CFLAGS) $(shell pkg-config --cflags openssl) -c -o $@ $^
@@ -39,11 +35,17 @@ rfc5077-pcap: rfc5077-pcap.o common.o
 
 certificate: key.pem cert.pem dh.pem
 key.pem:
-	certtool --bits 1024 --generate-privkey --outfile $@
+	certtool --bits 2432 --generate-privkey --outfile $@
+
+# for later gnutls utils
+#	certtool --sec-param normal --generate-privkey --outfile $@
+#
 cert.pem: key.pem
 	certtool --generate-self-signed --load-privkey $^ --outfile $@
 dh.pem:
 	certtool --bits 1024 --generate-dh-params --outfile $@
+
+#	certtool --sec-param normal --generate-dh-params --outfile $@
 
 clean:
 	rm -f *.pem *.o $(EXEC)

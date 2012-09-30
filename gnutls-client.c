@@ -34,7 +34,10 @@ debug(int level, const char *s) {
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay,
+      const char *client_cert,
+      const char *client_key) {
   struct addrinfo* addr;
   int err, s;
   char buffer[256];
@@ -43,6 +46,12 @@ connect_ssl(char *host, char *port,
   gnutls_session_t                 session;
   char                            *session_data = NULL;
   size_t                           session_data_size = 0;
+  char                            *session_id = NULL;
+  size_t                           session_id_size = 0;
+  char                            *session_id_hex = NULL;
+  char                            *session_id_p = NULL;
+  unsigned                         session_id_idx;
+  const char const                *hex = "0123456789ABCDEF";
 
   start("Initialize GNU TLS library");
   if ((err = gnutls_global_init()))
@@ -70,11 +79,17 @@ connect_ssl(char *host, char *port,
       fail("Unable to initialize cipher suites:\n%s",
 	   gnutls_strerror(err));
     gnutls_dh_set_prime_bits(session, 512);
-    if ((err = gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred)))
-      fail("Unable to set anonymous credentials for session:\n%s",
-	   gnutls_strerror(err));
+    if (client_cert == NULL) {
+      if ((err = gnutls_credentials_set(session, GNUTLS_CRD_ANON, anoncred)))
+        fail("Unable to set anonymous credentials for session:\n%s",
+	     gnutls_strerror(err));
+    } else {
+      if ((err = gnutls_certificate_set_x509_key_file(xcred, client_cert, client_key, GNUTLS_X509_FMT_PEM))) {
+        fail("failed to load x509 certificate from file %s or key from %s: %s",client_cert,client_key,gnutls_strerror(err));
+      }
+    }
     if ((err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, xcred)))
-      fail("Unable to set X509 credentials for session:\n%s",
+      fail("Unable to set credentials for session:\n%s",
 	   gnutls_strerror(err));
     
     if (use_ticket) {
@@ -92,10 +107,10 @@ connect_ssl(char *host, char *port,
     }
 
     s = connect_socket(addr, host, port);
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     gnutls_transport_set_ptr(session, (gnutls_transport_ptr_t)(uintptr_t)s);
     if ((err = gnutls_handshake(session))) {
-      fail("Unable to start TLS negociation:\n%s",
+      fail("Unable to start TLS renegotiation:\n%s",
 	   gnutls_strerror(err));
     }
 
@@ -113,14 +128,48 @@ connect_ssl(char *host, char *port,
     if (session_data) {
       free(session_data); session_data = NULL;
     }
+    session_data_size = 8192;
     if ((err = gnutls_session_get_data(session, NULL, &session_data_size)))
       warn("No session available:\n%s",
-	   gnutls_strerror(err));
+          gnutls_strerror(err));
     else {
       session_data = malloc(session_data_size);
       if (!session_data) fail("No memory available");
       gnutls_session_get_data(session, session_data, &session_data_size);
-      /* TODO: display some details about session */
+
+      if ((err = gnutls_session_get_id( session, NULL, &session_id_size)))
+         warn("No session id available:\n%s",
+             gnutls_strerror(err));
+      session_id = malloc(session_id_size);
+      if (!session_id) fail("No memory available");
+      else {
+        if ((err = gnutls_session_get_id( session, session_id, &session_id_size)))
+          warn("No session id available:\n%s",
+            gnutls_strerror(err));
+        session_id_hex = malloc(session_id_size * 2 + 1);
+        if (!session_id_hex) fail("No memory available");
+        else {
+          for (session_id_p = session_id_hex, session_id_idx = 0;
+               session_id_idx < session_id_size;
+               ++session_id_idx) {
+            *session_id_p++ = hex[ (session_id[session_id_idx] >> 4) & 0xf];
+            *session_id_p++ = hex[ session_id[session_id_idx] & 0xf];
+          }
+          *session_id_p = '\0';
+
+          end("Session context:\nProtocol : %s\nCipher : %s\nKx : %s\nCompression : %s\nPSK : %s\nID : %s",
+            gnutls_protocol_get_name( gnutls_protocol_get_version(session) ),
+            gnutls_cipher_get_name( gnutls_cipher_get(session) ),
+            gnutls_kx_get_name( gnutls_kx_get(session) ),
+            gnutls_compression_get_name( gnutls_compression_get(session)),
+            gnutls_psk_server_get_username(session),
+            session_id_hex
+            );
+          free(session_id_hex);
+        }
+        free(session_id);
+      }
+        
     }
     if (!use_sessionid && !use_ticket) {
       free(session_data); session_data = NULL;
@@ -150,7 +199,13 @@ connect_ssl(char *host, char *port,
     gnutls_bye(session, GNUTLS_SHUT_RDWR);
     close(s);
     gnutls_deinit (session);
-  } while (reconnect--);
+    --reconnect;
+    if (reconnect < 0) break;
+    else {
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
 
   if (session_data) free(session_data);
   gnutls_anon_free_client_credentials(anoncred);
