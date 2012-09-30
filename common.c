@@ -28,8 +28,8 @@ display(const char *sign, const char *format, va_list ap) {
     char *message = NULL;
     char *cur;
     while (n >= size) {
-      if ((message = realloc(message, size + 2048)) == NULL) return;
-      size = size + 2048;
+      if ((message = realloc(message, size + 8192)) == NULL) return;
+      size = size + 8192;
       if ((n = vsnprintf(message, size, format, ap)) == -1) return;
     }
     cur = message;

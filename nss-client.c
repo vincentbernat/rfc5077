@@ -94,7 +94,9 @@ nss_auth_cert_hook(void *arg, PRFileDesc *fd, PRBool checksig,
 int
 connect_ssl(char *host, char *port,
 	    int reconnect,
-	    int use_sessionid, int use_ticket) {
+	    int use_sessionid, int use_ticket,
+      int delay,
+      const char *client_cert, const char *client_key) {
   SECStatus        err;
   PRFileDesc      *tcpSocket, *sslSocket;
   int              s, n;
@@ -122,6 +124,9 @@ connect_ssl(char *host, char *port,
   if ((err = NSS_SetDomesticPolicy()) != SECSuccess)
     fail("Unable to configure US domestic policy:\n%s", SECU_ErrorString(PR_GetError()));
 
+  if (client_cert || client_key) {
+    fail("Client certificates not supported");
+  }
   addr = solve(host, port);
   do {
     s = connect_socket(addr, host, port);
@@ -140,11 +145,11 @@ connect_ssl(char *host, char *port,
     if ((err = SSL_AuthCertificateHook(sslSocket, nss_auth_cert_hook, NULL)) != SECSuccess)
       fail("Unable to register certificate check hook:\n%s", SECU_ErrorString(PR_GetError()));
 
-    start("Start TLS negociation");
+    start("Start TLS renegotiation");
     if ((err = SSL_ResetHandshake(sslSocket, PR_FALSE)) != SECSuccess)
-      fail("Unable to negociate TLS (1/2):\n%s", SECU_ErrorString(PR_GetError()));
+      fail("Unable to renegotiation TLS (1/2):\n%s", SECU_ErrorString(PR_GetError()));
     if ((err = SSL_ForceHandshake(sslSocket)) != SECSuccess)
-      fail("Unable to negociate TLS (2/2):\n%s", SECU_ErrorString(PR_GetError()));
+      fail("Unable to renegotiation TLS (2/2):\n%s", SECU_ErrorString(PR_GetError()));
 
     /* TODO: session resume check */
 
@@ -168,7 +173,13 @@ connect_ssl(char *host, char *port,
 
     start("End TLS connection");
     PR_Close(sslSocket);
-  } while (reconnect--);
+    --reconnect;
+    if (reconnect < 0) break;
+    else {         
+      start("waiting %d seconds",delay);
+      sleep(delay);
+    }
+  } while (1);
   SSL_ClearSessionCache();
   NSS_Shutdown();
   PR_Cleanup();
