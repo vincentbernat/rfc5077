@@ -159,7 +159,7 @@ resultinfo_display(struct resultinfo *result) {
 
   n = BIO_get_mem_data(mem, &buf);
   buf[n-1] = '\0';
-  end(buf);
+  end("%s",buf);
   BIO_free(mem);
   return;
 
