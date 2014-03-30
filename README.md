@@ -70,13 +70,13 @@ SQLite database that you can use to make queries).
 Getting Started
 ---------------
 
-If you've just cloned this from git run the following to ensure you
-have the submodules http-parser and httpagentparser:
+If you've just cloned this from git, run the following to ensure that
+the submodules `http-parser` and `httpagentparser` are installed:
 
-git submodule init
-git submodule update
+- `git submodule init`
+- `git submodule update`
 
-After that run make to build the executables.
+Then run `make` to build the executables.
 
 Dependancies
 ------------
