@@ -32,18 +32,19 @@
 /* Display usage and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-p {port}] host [host ...]\n"
+  fail("Usage: %s [-p {port}] [-4] host [host ...]\n"
        "\n"
        " Check if a host or a pool of hosts support RFC 5077."
        "\n"
        "Options:\n"
        "\t-p: specify a port to connect to\n"
+       "\t-4: use only ipv4 addresses\n"
        , name);
 }
 
 /* Solve hostname to IPs */
 static void
-resolve(const char *host, const char *port, struct addrinfo **result) {
+resolve(const char *host, const char *port, struct addrinfo **result, int ipv4only) {
   int              err, count;
   char             name[INET6_ADDRSTRLEN*4];
   char            *p;
@@ -52,7 +53,7 @@ resolve(const char *host, const char *port, struct addrinfo **result) {
 
   start("Solve %s", host);
   memset(&hints, 0, sizeof(struct addrinfo));
-  hints.ai_family   = AF_UNSPEC;
+  hints.ai_family   = ipv4only ? AF_INET : AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = 0;
   hints.ai_protocol = 0;
@@ -319,14 +320,18 @@ int
 main(int argc, char * const argv[]) {
   int  opt;
   char *port = PORT;
+  int  ipv4only = 0;
 
   /* We need at least one host */
   start("Check arguments");
 
-  while ((opt = getopt(argc, argv, "p:")) != -1) {
+  while ((opt = getopt(argc, argv, "p:4")) != -1) {
     switch (opt) {
     case 'p':
       port = optarg;
+      break;
+    case '4':
+      ipv4only = 1;
       break;
     default:
       usage(argv[0]);
@@ -340,7 +345,7 @@ main(int argc, char * const argv[]) {
   struct addrinfo *hosts, **next;
   next = &hosts;
   for (i = optind; i < argc; i++) {
-    resolve(argv[i], port, next);
+    resolve(argv[i], port, next, ipv4only);
     next = &((*next)->ai_next);
   }
 
