@@ -32,12 +32,13 @@
 /* Display usage and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-p {port}] [-4] host [host ...]\n"
+  fail("Usage: %s [-p {port}] [-s {sni name}] [-4] host [host ...]\n"
        "\n"
        " Check if a host or a pool of hosts support RFC 5077."
        "\n"
        "Options:\n"
        "\t-p: specify a port to connect to\n"
+       "\t-s: specify an sni name\n"
        "\t-4: use only ipv4 addresses\n"
        , name);
 }
@@ -218,7 +219,7 @@ resultinfo_write(const char *comment, struct resultinfo *result,
 }
 
 static struct resultinfo*
-tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, int tickets) {
+tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_name, int tickets) {
   SSL*                ssl;
   SSL_SESSION*        ssl_session = NULL;
   int                 s, err, n;
@@ -260,6 +261,11 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, int tickets) {
       if ((ssl = SSL_new(ctx)) == NULL)
 	fail("Unable to create new SSL struct:\n%s",
 	     ERR_error_string(ERR_get_error(), NULL));
+      if (sni_name) {
+        if (SSL_set_tlsext_host_name(ssl, sni_name) != 1) {
+          fail("Unable to set SNI name to %s", sni_name);
+        }
+      }
       SSL_set_fd(ssl, s);
       if (!tickets) SSL_set_options(ssl, SSL_OP_NO_TICKET);
       if (ssl_session) {
@@ -321,12 +327,16 @@ main(int argc, char * const argv[]) {
   int  opt;
   char *port = PORT;
   int  ipv4only = 0;
+  char *sni_name = NULL;
 
   /* We need at least one host */
   start("Check arguments");
 
-  while ((opt = getopt(argc, argv, "p:4")) != -1) {
+  while ((opt = getopt(argc, argv, "s:p:4")) != -1) {
     switch (opt) {
+    case 's':
+      sni_name = optarg;
+      break;
     case 'p':
       port = optarg;
       break;
@@ -348,6 +358,9 @@ main(int argc, char * const argv[]) {
     resolve(argv[i], port, next, ipv4only);
     next = &((*next)->ai_next);
   }
+
+  if (sni_name)
+    start("Using SNI name %s", sni_name);
 
   start("Prepare tests");
 
@@ -380,12 +393,12 @@ main(int argc, char * const argv[]) {
     fail("Unable to create output file ‘%s’:\n%m", name);
 
   /* Run tests */
-  results = tests(ctx, port, hosts, 0);
+  results = tests(ctx, port, hosts, sni_name, 0);
   resultinfo_display(results);
   resultinfo_write("Without tickets", results, output, 1);
   resultinfo_free(results);
 
-  results = tests(ctx, port, hosts, 1);
+  results = tests(ctx, port, hosts, sni_name, 1);
   resultinfo_display(results);
   resultinfo_write("With tickets", results, output, 0);
   resultinfo_free(results);
