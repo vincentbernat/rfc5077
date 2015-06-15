@@ -78,7 +78,7 @@ the submodules `http-parser` and `httpagentparser` are installed:
 
 Then run `make` to build the executables.
 
-Dependancies
+Dependencies
 ------------
 
 To compile these you will need a few dependancies that are the nss,
