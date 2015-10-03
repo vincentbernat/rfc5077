@@ -34,7 +34,9 @@ var rfc = function() {
 		url: "session?callback=?",
 		success: function(data) {
 		    var cipher = data.cipher;
+		    var version = data.version
 		    $("#cipher").text(cipher);
+		    $("#version").text(version);
 		    nextstep();
 		},
 		error: error
