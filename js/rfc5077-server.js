@@ -42,19 +42,27 @@ var rfc = function() {
 		error: error
 	    });
 	},
-	/* Session ID without tickets */
+	/* Session ID without cache nor tickets */
 	4: function() {
-	    checksessionid(ports[1], function(same) {
+	    checksessionid(ports[0], function(same) {
 		var wotickets = same;
 		$("#resume1").text(wotickets?"does":"does not");
 		nextstep();
 	    });
 	},
-	/* Session ID with tickets */
+	/* Session ID without tickets */
 	5: function() {
+	    checksessionid(ports[1], function(same) {
+		var wotickets = same;
+		$("#resume2").text(wotickets?"does":"does not");
+		nextstep();
+	    });
+	},
+	/* Session ID with tickets */
+	6: function() {
 	    checksessionid(ports[3], function(same) {
 		var wtickets = same;
-		$("#resume2").text(wtickets?"does":"does not");
+		$("#resume3").text(wtickets?"does":"does not");
 		nextstep();
 	    });
 	}
