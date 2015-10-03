@@ -334,6 +334,8 @@ http_handle_session(struct ev_loop *loop, struct connection *conn, void *_) {
   SSL_SESSION *x = SSL_get_session(conn->ssl);
   char        *answer;
 
+  /* Translate SSL version to text. See `SSL_SESSION_print' as a
+   * "proof" there is no better way to do that. */
   char *version = "unknown";
   switch (x->ssl_version) {
   case SSL2_VERSION:
