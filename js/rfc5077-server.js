@@ -65,6 +65,14 @@ var rfc = function() {
 		$("#resume3").text(wtickets?"does":"does not");
 		nextstep();
 	    });
+	},
+	/* Session ID with both cache and tickets */
+	7: function() {
+	    checksessionid(ports[2], function(same) {
+		var wtickets = same;
+		$("#resume4").text(wtickets?"does":"does not");
+		nextstep();
+	    });
 	}
     };
 
