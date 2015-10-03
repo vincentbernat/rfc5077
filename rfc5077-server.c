@@ -342,6 +342,14 @@ http_handle_session(struct ev_loop *loop, struct connection *conn, void *_) {
     version = "SSLv3"; break;
   case TLS1_VERSION:
    version = "TLSv1"; break;
+#ifdef TLS1_1_VERSION
+  case TLS1_1_VERSION:
+   version = "TLSv1.1"; break;
+#endif
+#ifdef TLS1_2_VERSION
+  case TLS1_2_VERSION:
+   version = "TLSv1.2"; break;
+#endif
   }
 
   char *sessionid = malloc(2*x->session_id_length + 1);
