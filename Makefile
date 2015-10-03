@@ -35,7 +35,7 @@ rfc5077-pcap: rfc5077-pcap.o common.o
 
 certificate: key.pem cert.pem dh.pem
 key.pem:
-	certtool --bits 2432 --generate-privkey --outfile $@
+	certtool --bits 2048 --generate-privkey --outfile $@
 
 # for later gnutls utils
 #	certtool --sec-param normal --generate-privkey --outfile $@
