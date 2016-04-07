@@ -17,6 +17,7 @@
 /* RFC 5077 client test */
 
 #include <unistd.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <openssl/ssl.h>
@@ -76,8 +77,8 @@ resolve(const char *host, const char *port, struct addrinfo **result, int ipv4on
 	p = strrchr(name, '\n');
 	*p = '\0';
       }
-      strncat(name, "\n[...]", sizeof(name));
-      name[sizeof(name)] = '\0';
+      strncat(name, "\n[...]", sizeof(name) - strlen(name) - 1);
+      name[sizeof(name) - 1] = '\0';
       while ((next = next->ai_next)) count++;
       break;
     }
@@ -244,7 +245,7 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
 			   name, sizeof(name), NULL, 0,
 			   NI_NUMERICHOST)))
       fail("Unable to format IP address:\n%s\n%m", gai_strerror(err));
-    name[sizeof(name)] = '\0';
+    name[sizeof(name) - 1] = '\0';
 
     for (int try = 0; try < TRY; try++) {
 
@@ -284,7 +285,7 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
 	fail("No session available");
       r = malloc(sizeof(struct resultinfo));
       if (r == NULL) fail("Unable to allocate memory");
-      r->host = strdup(name);
+      r->host = strndup(name, sizeof(name));
       r->try = try;
       r->session_reused = SSL_session_reused(ssl);
       r->session = ssl_session;
@@ -312,7 +313,7 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
       buffer[n] = '\0';
       if (strchr(buffer, '\r'))
 	*strchr(buffer, '\r') = '\0';
-      r->answer = strdup(buffer);
+      r->answer = strndup(buffer, sizeof(buffer));
 
       SSL_shutdown(ssl);
       close(s);
