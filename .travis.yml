@@ -1,0 +1,11 @@
+language: c
+script: make
+addons:
+  apt:
+    packages:
+      - libssl-dev
+      - libgnutls28-dev
+      - libnss3-dev
+      - libpcap-dev
+      - libev-dev
+      - libnspr4-dev
