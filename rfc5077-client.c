@@ -121,15 +121,15 @@ resultinfo_display(struct resultinfo *result) {
   start("Display result set");
   if (!result) fail("No memory");
   if (BIO_printf(mem,
-		 "         IP address            │ Try │         Cipher        │ Reuse │ "
+		 "         IP address            │ Try │             Cipher            │ Reuse │ "
 		 "   SSL Session ID   │      Master key     │ Ticket │ Answer \n"
-		 "───────────────────────────────┼─────┼───────────────────────┼───────┼─"
+		 "───────────────────────────────┼─────┼───────────────────────────────┼───────┼─"
 		 "────────────────────┼─────────────────────┼────────┼───────────────────") <= 0)
     goto err;
 
   for(; result; result = result->next) {
     x = result->session;
-    if (BIO_printf(mem, "\n%-30s │ %3d │ %-21s │   %s   │ ",
+    if (BIO_printf(mem, "\n%-30s │ %3d │ %-29s │   %s   │ ",
 		   result->host,
 		   result->try,
 		   SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(x)),
