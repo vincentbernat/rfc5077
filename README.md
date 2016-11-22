@@ -76,7 +76,10 @@ the submodules `http-parser` and `httpagentparser` are installed:
 - `git submodule init`
 - `git submodule update`
 
-Then run `make` to build the executables.
+Then run `make` to build the executables. This currently needs OpenSSL
+1.1. If you have an older version, go back to commit `3c37c33b46e0`:
+
+- `git checkout 3c37c33b46e0`
 
 Dependencies
 ------------
@@ -84,7 +87,7 @@ Dependencies
 To compile these you will need a few dependancies that are the nss,
 openssl, gnutls, libpcap, libev and nspr headers and libraries:
 
-On Fedora 17 the dependancies are:
+On Fedora the dependencies are:
  * openssl-devel
  * gnutls-devel
  * nss-devel

@@ -16,6 +16,7 @@
 
 /* RFC 5077 server test */
 
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -153,7 +154,7 @@ setup_ssl(struct server *server) {
   SSL_CTX *ctx;
 
   /* Create context */
-  if ((ctx = server->ctx = SSL_CTX_new(SSLv23_server_method())) == NULL)
+  if ((ctx = server->ctx = SSL_CTX_new(TLS_server_method())) == NULL)
     fail("Unable to create SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
   SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_ALL | SSL_OP_NO_COMPRESSION |
@@ -332,45 +333,35 @@ http_handle_file(struct ev_loop *loop, struct connection *conn, void *data) {
 static int
 http_handle_session(struct ev_loop *loop, struct connection *conn, void *_) {
   SSL_SESSION *x = SSL_get_session(conn->ssl);
-  char        *answer;
+  char       *answer;
+  const char *version = SSL_get_version(conn->ssl);
 
-  /* Translate SSL version to text. See `SSL_SESSION_print' as a
-   * "proof" there is no better way to do that. */
-  char *version = "unknown";
-  switch (x->ssl_version) {
-  case SSL2_VERSION:
-    version = "SSLv2"; break;
-  case SSL3_VERSION:
-    version = "SSLv3"; break;
-  case TLS1_VERSION:
-   version = "TLSv1"; break;
-#ifdef TLS1_1_VERSION
-  case TLS1_1_VERSION:
-   version = "TLSv1.1"; break;
-#endif
-#ifdef TLS1_2_VERSION
-  case TLS1_2_VERSION:
-   version = "TLSv1.2"; break;
-#endif
-  }
-
-  char *sessionid = malloc(2*x->session_id_length + 1);
+  unsigned int sessionid_len = 0;
+  const unsigned char *sessionid_raw = SSL_SESSION_get_id(x, &sessionid_len);
+  char *sessionid = malloc(2*sessionid_len + 1);
   if (!sessionid) fail("Out of memory");
-  for (int i = 0; i < x->session_id_length; i++)
-    snprintf(sessionid + 2*i, 3, "%02X", x->session_id[i]);
-  sessionid[2*x->session_id_length] = '\0';
+  for (unsigned int i = 0; i < sessionid_len; i++)
+    snprintf(sessionid + 2*i, 3, "%02X", sessionid_raw[i]);
+  sessionid[2*sessionid_len] = '\0';
 
-  char *masterkey = malloc(2*x->master_key_length + 1);
+  size_t masterkey_len = SSL_SESSION_get_master_key(x, NULL, 0);
+  unsigned char *masterkey_raw = calloc(1, masterkey_len);
+  if (!masterkey_raw) fail("Out of memory");
+  SSL_SESSION_get_master_key(x, masterkey_raw, masterkey_len);
+  char *masterkey = malloc(2*masterkey_len + 1);
   if (!masterkey) fail("Out of memory");
-  for (int i = 0; i < x->master_key_length; i++)
-    snprintf(masterkey + 2*i, 3, "%02X", x->master_key[i]);
-  masterkey[2*x->master_key_length] = '\0';
+  for (size_t i = 0; i < masterkey_len; i++)
+    snprintf(masterkey + 2*i, 3, "%02X", masterkey_raw[i]);
+  masterkey[2*masterkey_len] = '\0';
 
-  char *ticket = malloc(2*x->tlsext_ticklen + 1);
+  const unsigned char *ticket_raw;
+  size_t ticket_len = 0;
+  SSL_SESSION_get0_ticket(x, &ticket_raw, &ticket_len);
+  char *ticket = malloc(2*ticket_len + 1);
   if (!ticket) fail("Out of memory");
-  for (int i = 0; i < x->tlsext_ticklen; i++)
-    snprintf(ticket + 2*i, 3, "%02X", x->tlsext_tick[i]);
-  ticket[2*x->tlsext_ticklen] = '\0';
+  for (size_t i = 0; i < ticket_len; i++)
+    snprintf(ticket + 2*i, 3, "%02X", ticket_raw[i]);
+  ticket[2*ticket_len] = '\0';
 
   int n = asprintf(&answer,
 		   "{ version: '%s', \r\n"
@@ -380,11 +371,12 @@ http_handle_session(struct ev_loop *loop, struct connection *conn, void *_) {
 		   "  ticket: '%s' \r\n"
 		   "}",
 		   version,
-		   x->cipher?x->cipher->name:"unknown",
+		   SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(x)),
 		   sessionid,
 		   masterkey,
 		   ticket);
   free(sessionid);
+  free(masterkey_raw);
   free(masterkey);
   free(ticket);
   if (n == -1) return 1;

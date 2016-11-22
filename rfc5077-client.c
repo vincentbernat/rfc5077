@@ -92,6 +92,7 @@ struct resultinfo {
   char              *host;	     /* Tested host */
   int                try;	     /* Try number (0, 1, 2, ...) */
   int                session_reused; /* Is session reused? */
+  const char        *version;        /* SSL version */
   SSL_SESSION       *session;	     /* SSL session */
   char	            *answer;	     /* HTTP answer */
   struct resultinfo *next;	     /* Next result */
@@ -111,7 +112,7 @@ resultinfo_free(struct resultinfo *result) {
 /* Display results as a table (best-effort) */
 static void
 resultinfo_display(struct resultinfo *result) {
-  int          i, n;
+  unsigned     i, n;
   char        *buf;
   BIO         *mem = BIO_new(BIO_s_mem());
   SSL_SESSION *x;
@@ -130,32 +131,42 @@ resultinfo_display(struct resultinfo *result) {
     if (BIO_printf(mem, "\n%-30s │ %3d │ %-21s │   %s   │ ",
 		   result->host,
 		   result->try,
-		   x->cipher?x->cipher->name:"unknown",
+		   SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(x)),
 		   result->session_reused?"✔":"✘") <= 0) goto err;
 
-    if (x->session_id_length == 0) {
+    /* Session ID */
+    unsigned int id_len = 0;
+    const unsigned char *id = SSL_SESSION_get_id(x, &id_len);
+    if (id_len == 0) {
       if (BIO_printf(mem, "%19s", "") <= 0)
 	goto err;
     } else {
-      for (i = 0; (i < x->session_id_length) && (i < 9); i++) {
-	if (BIO_printf(mem, "%02X", x->session_id[i]) <= 0) goto err;
+      for (i = 0; (i < id_len) && (i < 9); i++) {
+	if (BIO_printf(mem, "%02X", id[i]) <= 0) goto err;
       }
-      if ((i != x->session_id_length) &&
+      if ((i != id_len) &&
 	  (BIO_puts(mem, "…") <= 0)) goto err;
     }
     if (BIO_puts(mem, " │ ") <=0) goto err;
-    if (x->master_key_length == 0) {
+
+    /* Master key */
+    size_t master_key_len = SSL_SESSION_get_master_key(x, NULL, 0);
+    if (master_key_len == 0) {
       if (BIO_printf(mem, "%19s", "") <= 0)
 	goto err;
     } else {
-      for (i = 0; (i < x->master_key_length) && (i < 9); i++) {
-	if (BIO_printf(mem, "%02X", x->master_key[i]) <= 0) goto err;
+      unsigned char *master_key = calloc(1, master_key_len);
+      if (master_key == NULL) fail("Unable to allocate memory");
+      SSL_SESSION_get_master_key(x, master_key, master_key_len);
+      for (i = 0; (i < master_key_len) && (i < 9); i++) {
+	if (BIO_printf(mem, "%02X", master_key[i]) <= 0) goto err;
       }
-      if ((i != x->master_key_length) &&
+      if ((i != master_key_len) &&
 	  (BIO_puts(mem, "…") <= 0)) goto err;
+      free(master_key);
     }
     if (BIO_printf(mem, " │   %s    │ %s ",
-		   x->tlsext_ticklen?"✔":"✘",
+		   SSL_SESSION_has_ticket(x)?"✔":"✘",
 		   result->answer?result->answer:"") <= 0) goto err;
   }
 
@@ -174,7 +185,6 @@ static void
 resultinfo_write(const char *comment, struct resultinfo *result,
 		 FILE *output, int write_header) {
   SSL_SESSION  *x;
-  int           i;
 
   start("Dump results to file");
   if (write_header)
@@ -190,29 +200,27 @@ resultinfo_write(const char *comment, struct resultinfo *result,
 	    result->host,
 	    result->try);
 
-    /* Display version */
-    if (x->ssl_version == SSL2_VERSION)
-      fprintf(output, "SSLv2");
-    else if (x->ssl_version == SSL3_VERSION)
-      fprintf(output, "SSLv3");
-    else if (x->ssl_version == TLS1_VERSION)
-      fprintf(output, "TLSv1");
-    else
-      fprintf(output, "%d", x->ssl_version);
-
-    /* Cipher, compression method */
-    fprintf(output, ";%s;%d",
-	    x->cipher?x->cipher->name:"",
-	    x->compress_meth);
+    /* Version, cipher, compression method */
+    fprintf(output, "%s;%s;%d",
+            result->version,
+            SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(x)),
+	    SSL_SESSION_get_compress_id(x));
 
     /* Session stuff */
+    unsigned int id_len = 0;
+    const unsigned char *id = SSL_SESSION_get_id(x, &id_len);
     fprintf(output, ";%d;", result->session_reused?1:0);
-    for (i = 0; i < x->session_id_length; i++)
-      fprintf(output, "%02X", x->session_id[i]);
+    for (unsigned int i = 0; i < id_len; i++)
+      fprintf(output, "%02X", id[i]);
     fprintf(output, ";");
-    for (i = 0; i < x->master_key_length; i++)
-      fprintf(output, "%02X", x->master_key[i]);
-    fprintf(output, ";%d;%s\n", x->tlsext_ticklen?1:0,
+    size_t master_key_len = SSL_SESSION_get_master_key(x, NULL, 0);
+    unsigned char *master_key = calloc(1, master_key_len);
+    if (master_key == NULL) fail("Unable to allocate memory");
+    SSL_SESSION_get_master_key(x, master_key, master_key_len);
+    for (size_t i = 0; i < master_key_len; i++)
+      fprintf(output, "%02X", master_key[i]);
+    free(master_key);
+    fprintf(output, ";%d;%s\n", SSL_SESSION_has_ticket(x)?1:0,
 	    result->answer?result->answer:"");
   }
   return;
@@ -288,6 +296,7 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
       r->try = try;
       r->session_reused = SSL_session_reused(ssl);
       r->session = ssl_session;
+      r->version = SSL_get_version(ssl);
       r->answer = NULL;
       r->next = NULL;
       *p = r;
@@ -368,7 +377,7 @@ main(int argc, char * const argv[]) {
   SSL_CTX *ctx;
   SSL_load_error_strings();
   SSL_library_init();
-  if ((ctx = SSL_CTX_new(TLSv1_client_method())) == NULL)
+  if ((ctx = SSL_CTX_new(TLS_client_method())) == NULL)
     fail("Unable to initialize SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
 

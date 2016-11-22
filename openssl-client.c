@@ -19,6 +19,7 @@
 #include "common.h"
 
 #include <unistd.h>
+#include <string.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
@@ -39,7 +40,7 @@ connect_ssl(char *host, char *port,
   start("Initialize OpenSSL library");
   SSL_load_error_strings();
   SSL_library_init();
-  if ((ctx = SSL_CTX_new(TLSv1_client_method())) == NULL)
+  if ((ctx = SSL_CTX_new(TLS_client_method())) == NULL)
     fail("Unable to initialize SSL context:\n%s",
 	 ERR_error_string(ERR_get_error(), NULL));
 
@@ -86,7 +87,10 @@ connect_ssl(char *host, char *port,
     else
       end("SSL session was not used");
     start("Get current session");
-    if (ssl_session) SSL_SESSION_free(ssl_session); ssl_session = NULL;
+    if (ssl_session) {
+      SSL_SESSION_free(ssl_session);
+      ssl_session = NULL;
+    }
     if (!(ssl_session = SSL_get1_session(ssl)))
       warn("No session available");
     else {
@@ -101,7 +105,7 @@ connect_ssl(char *host, char *port,
       BIO_free(mem);
     }
     if ((!use_sessionid && !use_ticket) ||
-	(!use_sessionid && !ssl_session->tlsext_tick)) {
+	(!use_sessionid && !SSL_SESSION_has_ticket(ssl_session))) {
       SSL_SESSION_free(ssl_session);
       ssl_session = NULL;
     }
