@@ -1,4 +1,4 @@
-CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_DEFAULT_SOURCE
+CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE
 LDFLAGS=
 EVCFLAGS=$(shell pkg-config --silence-errors --cflags libev)
 OPENSSL_LIBS=$(shell pkg-config --libs openssl)
