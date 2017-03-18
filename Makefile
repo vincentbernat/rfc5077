@@ -1,7 +1,7 @@
-CFLAGS=-g -Werror -Wall -ansi -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE
+CFLAGS = -g -Werror -Wall -ansi -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE
 LDFLAGS=
 EVCFLAGS=$(shell pkg-config --silence-errors --cflags libev)
-OPENSSL_LIBS=$(shell pkg-config --libs openssl)
+OPENSSL_LIBS=$(shell pkg-config --libs "openssl >= 1.1")
 EXEC=rfc5077-client rfc5077-server rfc5077-pcap openssl-client gnutls-client nss-client 
 
 all: $(EXEC)
