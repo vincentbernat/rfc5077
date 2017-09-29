@@ -51,7 +51,7 @@ connect_ssl(char *host, char *port,
   char                            *session_id_hex = NULL;
   char                            *session_id_p = NULL;
   unsigned                         session_id_idx;
-  const char const                *hex = "0123456789ABCDEF";
+  const char                      *hex = "0123456789ABCDEF";
 
   start("Initialize GNU TLS library");
   if ((err = gnutls_global_init()))
