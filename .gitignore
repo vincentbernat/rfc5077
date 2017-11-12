@@ -6,3 +6,5 @@
 *-pcap
 *.pem
 *.csv
+/csv/
+/pcap/
