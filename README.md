@@ -84,7 +84,7 @@ If you have an older version, go back to commit `3c37c33b46e0`:
 Dependencies
 ------------
 
-To compile these you will need a few dependancies that are the nss,
+To compile these you will need a few dependencies that are the nss,
 openssl, gnutls, libpcap, libev and nspr headers and libraries:
 
 On Fedora the dependencies are:
