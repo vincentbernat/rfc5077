@@ -391,7 +391,7 @@ main(int argc, char * const argv[]) {
 
   /* Build file name */
   n = snprintf(name, sizeof(name),
-	       "rfc5077-output-%lu", (unsigned long)now);
+	       "rfc5077-output-%llu", (unsigned long long)now);
   if (n == -1 || n >= sizeof(name))
     fail("Not possible...");
   for (i = 1; i < argc; i++) {
