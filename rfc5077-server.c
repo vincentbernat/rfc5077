@@ -525,7 +525,7 @@ http_cb_header_field(http_parser *p, const char *buf, size_t len) {
     break;
   default:
     /* We were reading an header field and it matches user-agent. */
-    if (strncasecmp("user-agent" + conn->uastate, buf, len)) {
+    if (strncasecmp(&"user-agent"[conn->uastate], buf, len)) {
       conn->uastate = -1;	/* No */
       break;
     }
