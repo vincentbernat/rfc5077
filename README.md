@@ -95,3 +95,26 @@ On Fedora the dependencies are:
  * libev-devel
  * nspr-devel
  * pkgconfig
+
+On Osx the denpendencies are: (which can be installed by homebrew)
+ * openssl@1.1
+ * gnutls
+ * nss
+ * libpcap
+ * libev
+ * pkg-config
+
+```bash
+# install denpendencies
+brew install openssl@1.1 gnutls nss libpcap libev pkg-config
+
+# openssl@1.1, nss, libpcap are keg-only we should export some env before make
+export PATH=$(brew --prefix)/opt/nss/bin:$PATH
+export PATH=$(brew --prefix)/opt/libpcap/bin:$PATH
+export PKG_CONFIG_PATH=$(brew --prefix)/opt/openssl@1.1/lib/pkgconfig:$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=$(brew --prefix)/opt/nss/lib/pkgconfig:$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH=$(brew --prefix)/opt/libpcap/lib/pkgconfig:$PKG_CONFIG_PATH
+
+# compile
+make
+```
