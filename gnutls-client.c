@@ -158,11 +158,10 @@ connect_ssl(char *host, char *port,
           }
           *session_id_p = '\0';
 
-          end("Session context:\nProtocol : %s\nCipher : %s\nKx : %s\nCompression : %s\nPSK : %s\nID : %s",
+          end("Session context:\nProtocol : %s\nCipher : %s\nKx : %s\nPSK : %s\nID : %s",
             gnutls_protocol_get_name( gnutls_protocol_get_version(session) ),
             gnutls_cipher_get_name( gnutls_cipher_get(session) ),
             gnutls_kx_get_name( gnutls_kx_get(session) ),
-            gnutls_compression_get_name( gnutls_compression_get(session)),
             gnutls_psk_server_get_username(session),
             session_id_hex
             );
