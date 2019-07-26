@@ -77,9 +77,9 @@ the submodules `http-parser` and `httpagentparser` are installed:
 - `git submodule update`
 
 Then run `make` to build the executables. This currently needs **OpenSSL 1.1**.
-If you have an older version, go back to commit `3c37c33b46e0`:
+If you have an older version, go back to branch `openssl-1.0`:
 
-- `git checkout 3c37c33b46e0`
+- `git checkout openssl-1.0`
 
 Dependencies
 ------------
