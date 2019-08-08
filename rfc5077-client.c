@@ -290,15 +290,11 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
 	     name,
 	     ERR_error_string(ERR_get_error(), NULL));
 
-      /* Grab session to store it */
-      if (!(ssl_session = SSL_get1_session(ssl)))
-	fail("No session available");
       r = malloc(sizeof(struct resultinfo));
       if (r == NULL) fail("Unable to allocate memory");
       r->host = strndup(name, sizeof(name));
       r->try = try;
       r->session_reused = SSL_session_reused(ssl);
-      r->session = ssl_session;
       r->version = SSL_get_version(ssl);
       r->answer = NULL;
       r->next = NULL;
@@ -325,6 +321,12 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
       if (strchr(buffer, '\r'))
 	*strchr(buffer, '\r') = '\0';
       r->answer = strndup(buffer, sizeof(buffer));
+
+      /* Grab session to store it */
+      if (!(ssl_session = SSL_get1_session(ssl)))
+        fail("No session available");
+
+      r->session = ssl_session;
 
       SSL_shutdown(ssl);
       close(s);
