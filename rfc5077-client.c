@@ -122,9 +122,9 @@ resultinfo_display(struct resultinfo *result) {
   if (!result) fail("No memory");
   if (BIO_printf(mem,
 		 "         IP address            │ Try │             Cipher            │ Reuse │ "
-		 "   SSL Session ID   │      Master key     │ Ticket │ Answer \n"
+		 "   SSL Session ID   │      Master key     │ Ticket │ Answer               │ TLS version\n"
 		 "───────────────────────────────┼─────┼───────────────────────────────┼───────┼─"
-		 "────────────────────┼─────────────────────┼────────┼───────────────────") <= 0)
+		 "────────────────────┼─────────────────────┼────────┼──────────────────────┼──────────") <= 0)
     goto err;
 
   for(; result; result = result->next) {
@@ -166,9 +166,11 @@ resultinfo_display(struct resultinfo *result) {
 	  (BIO_puts(mem, "…") <= 0)) goto err;
       free(master_key);
     }
-    if (BIO_printf(mem, " │   %s    │ %s ",
+    if (BIO_printf(mem, " │   %s    │ %-20s ",
 		   SSL_SESSION_has_ticket(x)?"✔":"✘",
 		   result->answer?result->answer:"") <= 0) goto err;
+
+    if (BIO_printf(mem, "│ %s ", result->version) <= 0 ) goto err;
   }
 
   n = BIO_get_mem_data(mem, &buf);
