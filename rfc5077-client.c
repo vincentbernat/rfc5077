@@ -122,9 +122,9 @@ resultinfo_display(struct resultinfo *result) {
   if (!result) fail("No memory");
   if (BIO_printf(mem,
 		 "         IP address            │ Try │             Cipher            │ Reuse │ "
-		 "   SSL Session ID   │      Master key     │ Ticket │ Answer \n"
+		 "   SSL Session ID   │      Master key     │ Ticket │ Answer               │ TLS version\n"
 		 "───────────────────────────────┼─────┼───────────────────────────────┼───────┼─"
-		 "────────────────────┼─────────────────────┼────────┼───────────────────") <= 0)
+		 "────────────────────┼─────────────────────┼────────┼──────────────────────┼──────────") <= 0)
     goto err;
 
   for(; result; result = result->next) {
@@ -166,9 +166,11 @@ resultinfo_display(struct resultinfo *result) {
 	  (BIO_puts(mem, "…") <= 0)) goto err;
       free(master_key);
     }
-    if (BIO_printf(mem, " │   %s    │ %s ",
+    if (BIO_printf(mem, " │   %s    │ %-20s ",
 		   SSL_SESSION_has_ticket(x)?"✔":"✘",
 		   result->answer?result->answer:"") <= 0) goto err;
+
+    if (BIO_printf(mem, "│ %s ", result->version) <= 0 ) goto err;
   }
 
   n = BIO_get_mem_data(mem, &buf);
@@ -288,15 +290,11 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
 	     name,
 	     ERR_error_string(ERR_get_error(), NULL));
 
-      /* Grab session to store it */
-      if (!(ssl_session = SSL_get1_session(ssl)))
-	fail("No session available");
       r = malloc(sizeof(struct resultinfo));
       if (r == NULL) fail("Unable to allocate memory");
       r->host = strndup(name, sizeof(name));
       r->try = try;
       r->session_reused = SSL_session_reused(ssl);
-      r->session = ssl_session;
       r->version = SSL_get_version(ssl);
       r->answer = NULL;
       r->next = NULL;
@@ -323,6 +321,12 @@ tests(SSL_CTX *ctx, const char *port, struct addrinfo *hosts, const char *sni_na
       if (strchr(buffer, '\r'))
 	*strchr(buffer, '\r') = '\0';
       r->answer = strndup(buffer, sizeof(buffer));
+
+      /* Grab session to store it */
+      if (!(ssl_session = SSL_get1_session(ssl)))
+        fail("No session available");
+
+      r->session = ssl_session;
 
       SSL_shutdown(ssl);
       close(s);
