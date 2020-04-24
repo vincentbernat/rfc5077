@@ -96,6 +96,12 @@ On Fedora the dependencies are:
  * nspr-devel
  * pkgconfig
 
+On Debian, the dependencies can be installed with the following command:
+
+```bash
+apt-get install libssl-dev gnutls-dev libnss3-dev libpcap-dev libev-dev libnspr4-dev pkgconf
+```
+
 On Osx the denpendencies are: (which can be installed by homebrew)
  * openssl@1.1
  * gnutls
