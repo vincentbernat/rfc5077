@@ -99,7 +99,7 @@ On Fedora the dependencies are:
 On Debian, the dependencies can be installed with the following command:
 
 ```bash
-apt-get install libssl-dev gnutls-dev libnss3-dev libpcap-dev libev-dev libnspr4-dev pkgconf
+apt-get install libssl-dev gnutls-dev libnss3-dev libpcap-dev libev-dev libnspr4-dev pkg-config
 ```
 
 On Osx the dependencies are: (which can be installed via homebrew)
