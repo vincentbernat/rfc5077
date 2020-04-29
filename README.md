@@ -57,7 +57,7 @@ Misc
 ----
 
 `rfc5077-pcap` will analyze SSL handshakes contained in PCAP files. It
-will try to detect "Client Hello". It will extract IP addesses,
+will try to detect "Client Hello". It will extract IP addresses,
 protocol version, Session ID, cipher suites, compression methods and
 detect the use of SNI extension and ticket extension. It should be
 used to determine how many clients support one cipher suite or how
@@ -96,7 +96,13 @@ On Fedora the dependencies are:
  * nspr-devel
  * pkgconfig
 
-On Osx the denpendencies are: (which can be installed by homebrew)
+On Debian, the dependencies can be installed with the following command:
+
+```bash
+apt-get install libssl-dev gnutls-dev libnss3-dev libpcap-dev libev-dev libnspr4-dev pkg-config
+```
+
+On Osx the dependencies are: (which can be installed via homebrew)
  * openssl@1.1
  * gnutls
  * nss
@@ -105,7 +111,7 @@ On Osx the denpendencies are: (which can be installed by homebrew)
  * pkg-config
 
 ```bash
-# install denpendencies
+# install dependencies
 brew install openssl@1.1 gnutls nss libpcap libev pkg-config
 
 # openssl@1.1, nss, libpcap are keg-only we should export some env before make
