@@ -8,3 +8,4 @@
 *.csv
 /csv/
 /pcap/
+/result
