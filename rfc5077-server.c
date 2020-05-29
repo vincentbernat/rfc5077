@@ -466,8 +466,9 @@ http_cb_message_complete(http_parser *p) {
 static int
 http_cb_headers_complete(http_parser *p) {
   struct connection *conn = (struct connection*)p->data;
+  int n = asprintf(&conn->protocol, "HTTP/%d.%d", p->http_major, p->http_minor);
   conn->method = p->method;
-  asprintf(&conn->protocol, "HTTP/%d.%d", p->http_major, p->http_minor);
+  if (n == -1) fail("Out of memory");
 
   /* Strip params and extract callback */
   char *q = strchr(conn->path, '?');
