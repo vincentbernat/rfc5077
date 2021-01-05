@@ -178,8 +178,8 @@ connect_ssl(char *host, char *port,
     start("Send HTTP GET");
     err = snprintf(buffer, sizeof(buffer),
 		   "GET / HTTP/1.0\r\n"
-		   "Host: %s\r\n"
-		   "\r\n", host);
+		   "Host: %s:%s\r\n"
+		   "\r\n", host, port);
     if (err == -1 || err >= sizeof(buffer))
       fail("Unable to build request to send");
     if (gnutls_record_send(session, buffer, strlen(buffer)) < 0)
