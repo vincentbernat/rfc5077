@@ -156,8 +156,8 @@ connect_ssl(char *host, char *port,
     start("Send HTTP GET");
     n = snprintf(buffer, sizeof(buffer),
 		 "GET / HTTP/1.0\r\n"
-		 "Host: %s\r\n"
-		 "\r\n", host);
+		 "Host: %s:%s\r\n"
+		 "\r\n", host, port);
     if (n == -1 || n >= sizeof(buffer))
       fail("Unable to build request to send");
     if ((err = PR_Write(sslSocket, buffer, n)) != n)
