@@ -37,6 +37,8 @@ connect_ssl(char *host, char *port,
   int              s, n;
   char             buffer[256];
   struct addrinfo* addr;
+  int stat_reused=0;
+  int stat_notreused=0;
 
   start("Initialize OpenSSL library");
   SSL_load_error_strings();
@@ -81,10 +83,14 @@ connect_ssl(char *host, char *port,
     start("Check if session was reused");
     if (!SSL_session_reused(ssl) && ssl_session)
       warn("No session was reused.");
-    else if (SSL_session_reused(ssl) && !ssl_session)
+    else if (SSL_session_reused(ssl) && !ssl_session) {
       warn("Session was reused.");
-    else if (SSL_session_reused(ssl))
+      stat_notreused++;
+    }
+    else if (SSL_session_reused(ssl)) {
       end("SSL session correctly reused");
+      stat_reused++;
+    }
     else
       end("SSL session was not used");
     start("Get current session");
@@ -143,7 +149,10 @@ connect_ssl(char *host, char *port,
     }
   } while (1);
 
+  start("STAT: reused: %d notreused: %d", stat_reused, stat_notreused);
   SSL_CTX_free(ctx);
+  if ( stat_notreused > 0 ) 
+	return 1;
   return 0;
 }
 
