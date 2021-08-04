@@ -32,24 +32,27 @@
 /* Display usage for clients and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-r] [-d {secs}] [-S] [-T] [-C {client_cert}] [-K {client_key} host port\n"
+  fail("Usage: %s [-r {number}] [-d {secs}] [-S] [-T] [-C {client_cert}] [-K {client_key} host port\n"
        "\n"
        " Connect to an SSL HTTP server and requests `/'\n"
        "\n"
        "Options:\n"
        "\t-r: reconnect (may be repeated)\n"
+       "\t-R: number of reconnects\n"
        "\t-d: delay between each renegotiation in seconds\n"
        "\t-S: disable support for session identifier\n"
        "\t-T: disable support for tickets\n"
        "\t-C: use a client certificate for the connection and this specifies a certificate as a file in PEM format. Optionally the key can be here too\n"
        "\t-K: use the key {client_key}, a PEM formated key file, in the connection\n"
+       "\t-U: use a different URL\n"
+       "\t-M: use a different method\n"
        , name);
 }
 
 /* Parse arguments and call back connect function */
 int client(int argc, char * const argv[],
 	   int (*connect)(char *, char *, int, int, int, int,
-                    const char *, const char *)) {
+                    const char *, const char *, const char *,const char *)) {
   int   opt, status;
   int   reconnect     = 0;
   int   use_sessionid = 1;
@@ -59,14 +62,19 @@ int client(int argc, char * const argv[],
   char *port          = NULL;
   const char *client_cert   = NULL;
   const char *client_key    = NULL;
+  const char *opt_url    = "/";
+  const char *opt_method    = "GET";
 
   /* Parse arguments */
   opterr = 0;
   start("Parse arguments");
-  while ((opt = getopt(argc, argv, "rd:STC:K:")) != -1) {
+  while ((opt = getopt(argc, argv, "rR:d:STC:K:U:M:")) != -1) {
     switch (opt) {
     case 'r':
       reconnect++;
+      break;
+    case 'R':
+      reconnect = atoi(optarg);
       break;
     case 'S':
       use_sessionid = 0;
@@ -82,6 +90,12 @@ int client(int argc, char * const argv[],
       break;
     case 'K':
       client_key = optarg;
+      break;
+    case 'U':
+      opt_url = optarg;
+      break;
+    case 'M':
+      opt_method = optarg;
       break;
     default:
       usage(argv[0]);
@@ -100,7 +114,7 @@ int client(int argc, char * const argv[],
   port = argv[optind + 1];
 
   /* Callback */
-  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay, client_cert, client_key);
+  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay, client_cert, client_key, opt_url, opt_method);
   end(NULL);
   return status;
 }

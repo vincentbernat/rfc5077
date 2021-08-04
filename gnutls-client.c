@@ -38,7 +38,8 @@ connect_ssl(char *host, char *port,
 	    int use_sessionid, int use_ticket,
       int delay,
       const char *client_cert,
-      const char *client_key) {
+      const char *client_key,
+      const char *opt_url, const char *opt_method) {
   struct addrinfo* addr;
   int err, s;
   char buffer[256];
@@ -175,11 +176,11 @@ connect_ssl(char *host, char *port,
       free(session_data); session_data = NULL;
     }
 
-    start("Send HTTP GET");
+    start("Send HTTP %s for %s",opt_method, opt_url);
     err = snprintf(buffer, sizeof(buffer),
-		   "GET / HTTP/1.0\r\n"
+		   "%s %s HTTP/1.0\r\n"
 		   "Host: %s:%s\r\n"
-		   "\r\n", host, port);
+		   "\r\n", opt_method, opt_url, host, port);
     if (err == -1 || err >= sizeof(buffer))
       fail("Unable to build request to send");
     if (gnutls_record_send(session, buffer, strlen(buffer)) < 0)
