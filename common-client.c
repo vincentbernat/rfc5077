@@ -32,7 +32,7 @@
 /* Display usage for clients and exit */
 static void
 usage(char * const name) {
-  fail("Usage: %s [-r {number}] [-d {secs}] [-S] [-T] [-C {client_cert}] [-K {client_key} host port\n"
+  fail("Usage: %s [-r] [-R {number}] [-d {secs}] [-S] [-T] [-C {client_cert}] [-K {client_key}] [-U URI ] [-M METHOD] host port\n"
        "\n"
        " Connect to an SSL HTTP server and requests `/'\n"
        "\n"
@@ -44,7 +44,7 @@ usage(char * const name) {
        "\t-T: disable support for tickets\n"
        "\t-C: use a client certificate for the connection and this specifies a certificate as a file in PEM format. Optionally the key can be here too\n"
        "\t-K: use the key {client_key}, a PEM formated key file, in the connection\n"
-       "\t-U: use a different URL\n"
+       "\t-U: use a different URI\n"
        "\t-M: use a different method\n"
        , name);
 }
@@ -62,7 +62,7 @@ int client(int argc, char * const argv[],
   char *port          = NULL;
   const char *client_cert   = NULL;
   const char *client_key    = NULL;
-  const char *opt_url    = "/";
+  const char *opt_uri    = "/";
   const char *opt_method    = "GET";
 
   /* Parse arguments */
@@ -92,7 +92,7 @@ int client(int argc, char * const argv[],
       client_key = optarg;
       break;
     case 'U':
-      opt_url = optarg;
+      opt_uri = optarg;
       break;
     case 'M':
       opt_method = optarg;
@@ -114,7 +114,7 @@ int client(int argc, char * const argv[],
   port = argv[optind + 1];
 
   /* Callback */
-  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay, client_cert, client_key, opt_url, opt_method);
+  status = connect(host, port, reconnect, use_sessionid, use_ticket, delay, client_cert, client_key, opt_uri, opt_method);
   end(NULL);
   return status;
 }

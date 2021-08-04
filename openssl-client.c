@@ -30,7 +30,7 @@ connect_ssl(char *host, char *port,
 	    int use_sessionid, int use_ticket,
       int delay,
       const char *client_cert, const char *client_key,
-      const char *opt_url, const char *opt_method) {
+      const char *opt_uri, const char *opt_method) {
   SSL_CTX*         ctx;
   SSL*             ssl;
   SSL_SESSION*     ssl_session = NULL;
@@ -111,11 +111,11 @@ connect_ssl(char *host, char *port,
       ssl_session = NULL;
     }
 
-    start("Send HTTP %s for %s",opt_method, opt_url);
+    start("Send HTTP %s for %s",opt_method, opt_uri);
     n = snprintf(buffer, sizeof(buffer),
 		 "%s %s HTTP/1.0\r\n"
 		 "Host: %s:%s\r\n"
-		 "\r\n", opt_method, opt_url,host, port);
+		 "\r\n", opt_method, opt_uri,host, port);
     if (n == -1 || n >= sizeof(buffer))
       fail("Unable to build request to send");
     if (SSL_write(ssl, buffer, strlen(buffer)) != strlen(buffer))
