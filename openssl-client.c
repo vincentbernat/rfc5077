@@ -29,13 +29,16 @@ connect_ssl(char *host, char *port,
 	    int reconnect,
 	    int use_sessionid, int use_ticket,
       int delay,
-      const char *client_cert, const char *client_key) {
+      const char *client_cert, const char *client_key,
+      const char *opt_uri, const char *opt_method) {
   SSL_CTX*         ctx;
   SSL*             ssl;
   SSL_SESSION*     ssl_session = NULL;
   int              s, n;
   char             buffer[256];
   struct addrinfo* addr;
+  int stat_reused=0;
+  int stat_notreused=0;
 
   start("Initialize OpenSSL library");
   SSL_load_error_strings();
@@ -80,10 +83,14 @@ connect_ssl(char *host, char *port,
     start("Check if session was reused");
     if (!SSL_session_reused(ssl) && ssl_session)
       warn("No session was reused.");
-    else if (SSL_session_reused(ssl) && !ssl_session)
+    else if (SSL_session_reused(ssl) && !ssl_session) {
       warn("Session was reused.");
-    else if (SSL_session_reused(ssl))
+      stat_notreused++;
+    }
+    else if (SSL_session_reused(ssl)) {
       end("SSL session correctly reused");
+      stat_reused++;
+    }
     else
       end("SSL session was not used");
     start("Get current session");
@@ -110,11 +117,11 @@ connect_ssl(char *host, char *port,
       ssl_session = NULL;
     }
 
-    start("Send HTTP GET");
+    start("Send HTTP %s for %s",opt_method, opt_uri);
     n = snprintf(buffer, sizeof(buffer),
-		 "GET / HTTP/1.0\r\n"
+		 "%s %s HTTP/1.0\r\n"
 		 "Host: %s:%s\r\n"
-		 "\r\n", host, port);
+		 "\r\n", opt_method, opt_uri,host, port);
     if (n == -1 || n >= sizeof(buffer))
       fail("Unable to build request to send");
     if (SSL_write(ssl, buffer, strlen(buffer)) != strlen(buffer))
@@ -142,7 +149,10 @@ connect_ssl(char *host, char *port,
     }
   } while (1);
 
+  start("STAT: reused: %d notreused: %d", stat_reused, stat_notreused);
   SSL_CTX_free(ctx);
+  if ( stat_notreused > 0 ) 
+	return 1;
   return 0;
 }
 
